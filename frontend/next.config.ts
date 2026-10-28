@@ -9,6 +9,7 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone",
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
