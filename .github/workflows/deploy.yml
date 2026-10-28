@@ -61,7 +61,8 @@ jobs:
   images:
     name: Gerar imagens
     needs: [backend, frontend]
-    runs-on: ubuntu-latest
+    # O servidor é ARM (aarch64): as imagens são geradas num runner ARM, sem emulação.
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
       packages: write
