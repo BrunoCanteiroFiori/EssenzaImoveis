@@ -15,7 +15,8 @@ dos imóveis e os certificados ficam em volumes (`postgres-data`, `uploads`, `ca
 
 ## 1. Preparar o servidor (uma vez)
 
-Servidor Linux x86_64 (amd64). Se for ARM, adicionar `platforms: linux/arm64` nos passos `docker/build-push-action`.
+Servidor Linux ARM (aarch64): as imagens são geradas no runner `ubuntu-24.04-arm` do GitHub. Se o servidor mudar para
+x86_64 (confira com `uname -m`), trocar o `runs-on` do job "Gerar imagens" para `ubuntu-latest`.
 
 ```bash
 # Docker Engine + plugin compose
