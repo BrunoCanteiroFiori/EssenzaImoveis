@@ -16,8 +16,9 @@ DotNetEnv.Env.TraversePath().Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+var host = builder.Configuration["HOST"] ?? "localhost";
 var port = builder.Configuration["PORT"] ?? "4000";
-builder.WebHost.UseUrls($"http://localhost:{port}");
+builder.WebHost.UseUrls($"http://{host}:{port}");
 
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("A connection string 'Default' não foi configurada. Verifique o arquivo .env.");
@@ -32,6 +33,9 @@ var storageRootPath = Path.GetFullPath(builder.Configuration["Storage:RootPath"]
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "http://localhost:3000")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 var secureCookies = builder.Configuration.GetValue("Auth:SecureCookies", !builder.Environment.IsDevelopment());
+var trustedProxyNetworks = (builder.Configuration["ForwardedHeaders:KnownNetworks"] ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .Select(network => System.Net.IPNetwork.Parse(network));
 
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddJwtTokenGenerator(jwtOptions);
@@ -70,10 +74,16 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-app.UseForwardedHeaders(new ForwardedHeadersOptions
+var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-});
+};
+foreach (var network in trustedProxyNetworks)
+{
+    forwardedHeadersOptions.KnownIPNetworks.Add(network);
+}
+
+app.UseForwardedHeaders(forwardedHeadersOptions);
 app.UseExceptionHandler();
 app.Use(async (context, next) =>
 {

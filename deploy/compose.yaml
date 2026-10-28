@@ -1,0 +1,79 @@
+# Stack de produção. Fica no servidor em DEPLOY_PATH junto com o Caddyfile e o .env (veja README.md).
+# As imagens são geradas pelo workflow .github/workflows/deploy.yml e publicadas no GitHub Container Registry.
+name: sitecorretora
+
+x-backend-environment: &backend-environment
+  ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:?};Username=${POSTGRES_USER:?};Password=${POSTGRES_PASSWORD:?}
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrations:
+    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-migrations:${IMAGE_TAG:-latest}
+    env_file: .env
+    environment:
+      <<: *backend-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-api:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *backend-environment
+      # A API só é acessível pela rede interna do Docker, então o Caddy é o único proxy que chega até ela.
+      ForwardedHeaders__KnownNetworks: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+
+  web:
+    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      # Leituras feitas no servidor (Server Components) vão direto para a API pela rede interna.
+      API_URL: http://api:4000
+    depends_on:
+      - api
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?defina SITE_ADDRESS no .env}
+      API_ADDRESS: ${API_ADDRESS:?defina API_ADDRESS no .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+      - "8080:8080"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  postgres-data:
+  uploads:
+  caddy-data:
+  caddy-config:
