@@ -21,7 +21,8 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_TELEMETRY_DISABLED=1
 COPY --from=dependencies /app/node_modules ./node_modules
 COPY . .
-RUN npm run build
+# public/ pode não vir no checkout: o git não versiona pasta vazia.
+RUN mkdir -p public && npm run build
 
 FROM node:24-alpine AS web
 WORKDIR /app
