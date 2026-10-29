@@ -29,7 +29,7 @@ export type PropertySummary = {
   city: string;
   state: string;
   coverImageUrl: string | null;
-  imageCount: number;
+  mediaCount: number;
   isSponsored: boolean;
   temperature: Temperature;
   createdAt: string;
@@ -52,7 +52,8 @@ export type PropertyDetails = {
   neighborhood: string;
   city: string;
   state: string;
-  imageUrls: string[];
+  coverImageUrl: string | null;
+  media: PropertyMedia[];
   isSponsored: boolean;
   temperature: Temperature;
   createdAt: string;
@@ -68,7 +69,10 @@ export type Address = {
   zipCode: string;
 };
 
-export type PropertyImage = { fileName: string; url: string };
+export type PropertyMediaType = "Photo" | "Video";
+
+/** Foto ou vídeo do carrossel. A capa do anúncio é a primeira foto. */
+export type PropertyMedia = { fileName: string; type: PropertyMediaType; url: string };
 
 /** Imóvel completo da área administrativa. */
 export type Property = {
@@ -86,7 +90,7 @@ export type Property = {
   bathrooms: number;
   parkingSpaces: number;
   address: Address;
-  images: PropertyImage[];
+  media: PropertyMedia[];
   sponsoredUntil: string | null;
   isSponsored: boolean;
   createdAt: string;
@@ -95,7 +99,7 @@ export type Property = {
 
 export type PropertyInput = Omit<
   Property,
-  "id" | "status" | "images" | "sponsoredUntil" | "isSponsored" | "createdAt" | "updatedAt"
+  "id" | "status" | "media" | "sponsoredUntil" | "isSponsored" | "createdAt" | "updatedAt"
 >;
 
 export type FeaturedProperties = {

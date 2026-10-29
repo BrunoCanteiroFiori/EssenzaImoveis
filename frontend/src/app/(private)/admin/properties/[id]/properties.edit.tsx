@@ -14,7 +14,7 @@ import { getProperty, updateProperty } from "@/lib/properties.api";
 import type { Property, PropertyInput } from "@/lib/properties.types";
 import { PropertyForm } from "../properties.form";
 import { statusTones } from "../properties.component";
-import { PropertyImagesManager } from "./properties.images";
+import { PropertyMediaManager } from "./properties.media";
 import { PropertyStatusPanel } from "./properties.status";
 
 export function EditPropertyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -76,8 +76,8 @@ function EditProperty({ id }: { id: string }) {
 
       <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
         <div className="flex min-w-0 flex-col gap-6">
-          <Panel title="Fotos">
-            <PropertyImagesManager property={property} readOnly={!canWrite} onChanged={handleChanged} />
+          <Panel title="Fotos e vídeos">
+            <PropertyMediaManager property={property} readOnly={!canWrite} onChanged={handleChanged} />
           </Panel>
           <Panel title="Dados do imóvel">
             <PropertyForm key={property.id} property={property} readOnly={!canWrite} submitLabel="Salvar alterações" onSubmit={handleUpdate} />

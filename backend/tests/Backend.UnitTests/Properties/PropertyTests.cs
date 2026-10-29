@@ -16,7 +16,7 @@ public sealed class PropertyTests
         Assert.Equal(PropertyStatus.Available, property.Status);
         Assert.Equal(TestData.Now, property.CreatedAt);
         Assert.True(property.IsPubliclyVisible);
-        Assert.Empty(property.Images);
+        Assert.Empty(property.Media);
     }
 
     [Theory]
@@ -25,6 +25,28 @@ public sealed class PropertyTests
     public void Create_WithEmptyTitle_ShouldThrowDomainException(string title)
     {
         Assert.Throws<DomainException>(() => TestData.Property(title: title));
+    }
+
+    [Fact]
+    public void Create_WithMessyTitleAndDescription_ShouldStoreNormalizedText()
+    {
+        var property = Property.Create(
+            " Casa\u00A0em  Sa\u0303o Paulo\u0000 ",
+            "Sala ampla.\r\n\r\n\r\nCozinha\u200B planejada.  ",
+            PropertyType.House,
+            PropertyPurpose.Sale,
+            100_000m,
+            null,
+            null,
+            100m,
+            2,
+            1,
+            1,
+            TestData.Address(),
+            TestData.Now);
+
+        Assert.Equal("Casa em São Paulo", property.Title);
+        Assert.Equal("Sala ampla.\n\nCozinha planejada.", property.Description);
     }
 
     [Fact]
@@ -156,77 +178,137 @@ public sealed class PropertyTests
     }
 
     [Fact]
-    public void AddImage_WithNewImage_ShouldBecomeCoverWhenFirst()
+    public void AddMedia_WithPhotos_ShouldAppendAndUseFirstAsCover()
     {
         var property = TestData.Property();
 
-        property.AddImage("foto-1.jpg", TestData.Now);
-        property.AddImage("foto-2.jpg", TestData.Now);
+        property.AddMedia("foto-1.jpg", TestData.Now);
+        property.AddMedia("foto-2.jpg", TestData.Now);
 
-        Assert.Equal(["foto-1.jpg", "foto-2.jpg"], property.Images);
+        Assert.Equal(["foto-1.jpg", "foto-2.jpg"], property.Media);
         Assert.Equal("foto-1.jpg", property.CoverImage);
     }
 
     [Fact]
-    public void AddImage_WithDuplicateImage_ShouldThrowDomainException()
+    public void AddMedia_WithVideos_ShouldInsertAfterLeadingVideosAndBeforePhotos()
     {
         var property = TestData.Property();
-        property.AddImage("foto-1.jpg", TestData.Now);
+        property.AddMedia("foto-1.jpg", TestData.Now);
 
-        Assert.Throws<DomainException>(() => property.AddImage("foto-1.jpg", TestData.Now));
+        property.AddMedia("video-1.mp4", TestData.Now);
+        property.AddMedia("video-2.webm", TestData.Now);
+
+        Assert.Equal(["video-1.mp4", "video-2.webm", "foto-1.jpg"], property.Media);
+        Assert.Equal("foto-1.jpg", property.CoverImage);
     }
 
     [Fact]
-    public void AddImage_AboveMaxImages_ShouldThrowDomainException()
+    public void AddMedia_WithVideoAfterReorderPuttingPhotoFirst_ShouldInsertVideoAtStart()
     {
         var property = TestData.Property();
-        for (var index = 0; index < Property.MaxImages; index++)
+        property.AddMedia("foto-1.jpg", TestData.Now);
+        property.AddMedia("video-1.mp4", TestData.Now);
+        property.ReorderMedia(["foto-1.jpg", "video-1.mp4"], TestData.Now);
+
+        property.AddMedia("video-2.mp4", TestData.Now);
+
+        Assert.Equal(["video-2.mp4", "foto-1.jpg", "video-1.mp4"], property.Media);
+    }
+
+    [Fact]
+    public void AddMedia_WithDuplicateFile_ShouldThrowDomainException()
+    {
+        var property = TestData.Property();
+        property.AddMedia("foto-1.jpg", TestData.Now);
+
+        Assert.Throws<DomainException>(() => property.AddMedia("foto-1.jpg", TestData.Now));
+    }
+
+    [Fact]
+    public void AddMedia_AboveMaxMedia_ShouldThrowDomainException()
+    {
+        var property = TestData.Property();
+        for (var index = 0; index < Property.MaxMedia; index++)
         {
-            property.AddImage($"foto-{index}.jpg", TestData.Now);
+            property.AddMedia($"foto-{index}.jpg", TestData.Now);
         }
 
-        Assert.Throws<DomainException>(() => property.AddImage("extra.jpg", TestData.Now));
+        Assert.Throws<DomainException>(() => property.AddMedia("extra.jpg", TestData.Now));
     }
 
     [Fact]
-    public void RemoveImage_WithUnknownImage_ShouldThrowDomainException()
+    public void AddMedia_AboveMaxVideos_ShouldThrowDomainException()
     {
         var property = TestData.Property();
+        for (var index = 0; index < Property.MaxVideos; index++)
+        {
+            property.AddMedia($"video-{index}.mp4", TestData.Now);
+        }
 
-        Assert.Throws<DomainException>(() => property.RemoveImage("inexistente.jpg", TestData.Now));
+        Assert.Throws<DomainException>(() => property.AddMedia("extra.webm", TestData.Now));
     }
 
     [Fact]
-    public void RemoveImage_WithExistingImage_ShouldRemoveIt()
+    public void CoverImage_WithOnlyVideos_ShouldBeNull()
     {
         var property = TestData.Property();
-        property.AddImage("foto-1.jpg", TestData.Now);
 
-        property.RemoveImage("foto-1.jpg", TestData.Now);
+        property.AddMedia("video-1.mp4", TestData.Now);
 
-        Assert.Empty(property.Images);
+        Assert.Null(property.CoverImage);
+    }
+
+    [Theory]
+    [InlineData("foto.jpg", PropertyMediaType.Photo)]
+    [InlineData("foto.webp", PropertyMediaType.Photo)]
+    [InlineData("video.mp4", PropertyMediaType.Video)]
+    [InlineData("VIDEO.WEBM", PropertyMediaType.Video)]
+    public void GetMediaType_ShouldUseFileExtension(string fileName, PropertyMediaType expected)
+    {
+        Assert.Equal(expected, Property.GetMediaType(fileName));
+    }
+
+    [Fact]
+    public void RemoveMedia_WithUnknownFile_ShouldThrowDomainException()
+    {
+        var property = TestData.Property();
+
+        Assert.Throws<DomainException>(() => property.RemoveMedia("inexistente.jpg", TestData.Now));
+    }
+
+    [Fact]
+    public void RemoveMedia_WithExistingFile_ShouldRemoveIt()
+    {
+        var property = TestData.Property();
+        property.AddMedia("foto-1.jpg", TestData.Now);
+
+        property.RemoveMedia("foto-1.jpg", TestData.Now);
+
+        Assert.Empty(property.Media);
         Assert.Null(property.CoverImage);
     }
 
     [Fact]
-    public void ReorderImages_WithSameImages_ShouldChangeCover()
+    public void ReorderMedia_WithSameFiles_ShouldChangeOrderAndCover()
     {
         var property = TestData.Property();
-        property.AddImage("foto-1.jpg", TestData.Now);
-        property.AddImage("foto-2.jpg", TestData.Now);
+        property.AddMedia("foto-1.jpg", TestData.Now);
+        property.AddMedia("foto-2.jpg", TestData.Now);
+        property.AddMedia("video-1.mp4", TestData.Now);
 
-        property.ReorderImages(["foto-2.jpg", "foto-1.jpg"], TestData.Now);
+        property.ReorderMedia(["foto-2.jpg", "video-1.mp4", "foto-1.jpg"], TestData.Now);
 
+        Assert.Equal(["foto-2.jpg", "video-1.mp4", "foto-1.jpg"], property.Media);
         Assert.Equal("foto-2.jpg", property.CoverImage);
     }
 
     [Fact]
-    public void ReorderImages_WithDifferentImages_ShouldThrowDomainException()
+    public void ReorderMedia_WithDifferentFiles_ShouldThrowDomainException()
     {
         var property = TestData.Property();
-        property.AddImage("foto-1.jpg", TestData.Now);
-        property.AddImage("foto-2.jpg", TestData.Now);
+        property.AddMedia("foto-1.jpg", TestData.Now);
+        property.AddMedia("foto-2.jpg", TestData.Now);
 
-        Assert.Throws<DomainException>(() => property.ReorderImages(["foto-1.jpg", "outra.jpg"], TestData.Now));
+        Assert.Throws<DomainException>(() => property.ReorderMedia(["foto-1.jpg", "outra.jpg"], TestData.Now));
     }
 }

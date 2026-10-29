@@ -22,7 +22,8 @@ public sealed record PropertyDetailsResponse(
     string Neighborhood,
     string City,
     string State,
-    IReadOnlyList<string> ImageUrls,
+    string? CoverImageUrl,
+    IReadOnlyList<PropertyMediaResponse> Media,
     bool IsSponsored,
     TemperatureResponse Temperature,
     DateTimeOffset CreatedAt);

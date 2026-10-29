@@ -57,6 +57,22 @@ public sealed class Address : ValueObject
         };
     }
 
+    /// <summary>
+    /// Valida o CEP e devolve só os 8 dígitos (aceita máscara, ex.: 01001-000).
+    /// Só vale dígito ASCII: dígitos de outros alfabetos (ex.: largura total) são ignorados.
+    /// Lança <see cref="DomainException"/> se o CEP for inválido.
+    /// </summary>
+    public static string NormalizeZipCode(string zipCode)
+    {
+        var digits = new string((zipCode ?? string.Empty).Where(char.IsAsciiDigit).ToArray());
+        if (digits.Length != ZipCodeLength)
+        {
+            throw new DomainException($"O campo CEP deve ter {ZipCodeLength} dígitos.");
+        }
+
+        return digits;
+    }
+
     protected override IEnumerable<object?> GetEqualityComponents()
     {
         yield return Street;
@@ -68,50 +84,33 @@ public sealed class Address : ValueObject
         yield return ZipCode;
     }
 
-    private static string Required(string value, string field, int maxLength)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            throw new DomainException($"O campo {field} é obrigatório.");
-        }
-
-        return Optional(value, field, maxLength)!;
-    }
+    private static string Required(string value, string field, int maxLength) =>
+        Optional(value, field, maxLength) ?? throw new DomainException($"O campo {field} é obrigatório.");
 
     private static string? Optional(string? value, string field, int maxLength)
     {
-        if (string.IsNullOrWhiteSpace(value))
+        var normalized = TextNormalizer.NormalizeLine(value);
+        if (normalized.Length == 0)
         {
             return null;
         }
 
-        if (value.Trim().Length > maxLength)
+        if (normalized.Length > maxLength)
         {
             throw new DomainException($"O campo {field} deve ter no máximo {maxLength} caracteres.");
         }
 
-        return value.Trim();
+        return normalized;
     }
 
     private static string NormalizeState(string state)
     {
-        var normalized = state?.Trim().ToUpperInvariant() ?? string.Empty;
+        var normalized = TextNormalizer.NormalizeLine(state).ToUpperInvariant();
         if (!_states.Contains(normalized))
         {
             throw new DomainException("O campo Estado deve ser uma UF válida (ex.: SP).");
         }
 
         return normalized;
-    }
-
-    private static string NormalizeZipCode(string zipCode)
-    {
-        var digits = new string((zipCode ?? string.Empty).Where(char.IsDigit).ToArray());
-        if (digits.Length != ZipCodeLength)
-        {
-            throw new DomainException($"O campo CEP deve ter {ZipCodeLength} dígitos.");
-        }
-
-        return digits;
     }
 }

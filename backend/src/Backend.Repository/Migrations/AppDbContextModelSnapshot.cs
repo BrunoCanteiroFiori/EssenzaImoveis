@@ -266,10 +266,12 @@ namespace Backend.Repository.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.PrimitiveCollection<List<string>>("_images")
+                    b.PrimitiveCollection<List<string>>("_media")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("text[]")
-                        .HasColumnName("images");
+                        .HasColumnName("media")
+                        .HasDefaultValueSql("'{}'");
 
                     b.ComplexProperty(typeof(Dictionary<string, object>), "Address", "Backend.Domain.Properties.Property.Address#Address", b1 =>
                         {

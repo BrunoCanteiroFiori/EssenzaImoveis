@@ -20,7 +20,7 @@ public static class PropertyMappings
         property.Bathrooms,
         property.ParkingSpaces,
         property.Address.ToResponse(),
-        [.. property.Images.Select(fileName => new PropertyImageResponse(fileName, PropertyImagePaths.GetUrl(property.Id, fileName)))],
+        property.ToMediaResponses(),
         property.SponsoredUntil,
         property.IsSponsored(now),
         property.CreatedAt,
@@ -40,8 +40,8 @@ public static class PropertyMappings
         property.Address.Neighborhood,
         property.Address.City,
         property.Address.State,
-        property.CoverImage is null ? null : PropertyImagePaths.GetUrl(property.Id, property.CoverImage),
-        property.Images.Count,
+        property.GetCoverImageUrl(),
+        property.Media.Count,
         property.IsSponsored(now),
         ToTemperatureResponse(recentViews),
         property.CreatedAt);
@@ -63,7 +63,8 @@ public static class PropertyMappings
         property.Address.Neighborhood,
         property.Address.City,
         property.Address.State,
-        [.. property.Images.Select(fileName => PropertyImagePaths.GetUrl(property.Id, fileName))],
+        property.GetCoverImageUrl(),
+        property.ToMediaResponses(),
         property.IsSponsored(now),
         ToTemperatureResponse(recentViews),
         property.CreatedAt);
@@ -123,6 +124,15 @@ public static class PropertyMappings
         request.Sort,
         request.Page,
         request.PageSize);
+
+    private static List<PropertyMediaResponse> ToMediaResponses(this Property property) =>
+        [.. property.Media.Select(fileName => new PropertyMediaResponse(
+            fileName,
+            Property.GetMediaType(fileName),
+            PropertyMediaPaths.GetUrl(property.Id, fileName)))];
+
+    private static string? GetCoverImageUrl(this Property property) =>
+        property.CoverImage is null ? null : PropertyMediaPaths.GetUrl(property.Id, property.CoverImage);
 
     private static TemperatureResponse ToTemperatureResponse(int recentViews)
     {

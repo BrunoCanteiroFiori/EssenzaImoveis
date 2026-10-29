@@ -4,13 +4,12 @@ using Backend.Api.Authorization;
 using Backend.Api.RateLimiting;
 using Backend.Api.Seeding;
 using Backend.Application;
-using Backend.Application.Properties;
 using Backend.Domain.Abstractions;
 using Backend.Infrastructure;
 using Backend.Infrastructure.Security;
+using Backend.Infrastructure.Storage;
 using Backend.Repository;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.Extensions.FileProviders;
 
 DotNetEnv.Env.TraversePath().Load();
 
@@ -29,7 +28,7 @@ var jwtOptions = new JwtOptions(
     builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("O segredo 'Jwt__Secret' não foi configurado. Verifique o arquivo .env."),
     TimeSpan.FromMinutes(builder.Configuration.GetValue("Jwt:AccessTokenMinutes", 15)));
 
-var storageRootPath = Path.GetFullPath(builder.Configuration["Storage:RootPath"] ?? "uploads", builder.Environment.ContentRootPath);
+var storageProvider = builder.Configuration["Storage:Provider"] ?? "GoogleDrive";
 var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? "http://localhost:3000")
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 var secureCookies = builder.Configuration.GetValue("Auth:SecureCookies", !builder.Environment.IsDevelopment());
@@ -39,7 +38,24 @@ var trustedProxyNetworks = (builder.Configuration["ForwardedHeaders:KnownNetwork
 
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.AddJwtTokenGenerator(jwtOptions);
-builder.Services.AddLocalFileStorage(storageRootPath);
+if (storageProvider == "GoogleDrive")
+{
+    builder.Services.AddGoogleDriveFileStorage(new GoogleDriveOptions(
+        RequiredSetting("GoogleDrive:ClientId"),
+        RequiredSetting("GoogleDrive:ClientSecret"),
+        RequiredSetting("GoogleDrive:RefreshToken"),
+        builder.Configuration["GoogleDrive:RootFolderName"] ?? "SiteCorretora"));
+}
+else if (storageProvider == "Local")
+{
+    builder.Services.AddLocalFileStorage(
+        Path.GetFullPath(builder.Configuration["Storage:RootPath"] ?? "uploads", builder.Environment.ContentRootPath));
+}
+else
+{
+    throw new InvalidOperationException($"Storage__Provider '{storageProvider}' inválido: use GoogleDrive ou Local.");
+}
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddRepository();
@@ -104,21 +120,6 @@ if (app.Environment.IsDevelopment())
     app.MapGet("/", () => Results.Redirect("/swagger")).ExcludeFromDescription().AllowAnonymous();
 }
 
-Directory.CreateDirectory(storageRootPath);
-app.Map(PropertyImagePaths.PublicBasePath, uploads =>
-{
-    uploads.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new PhysicalFileProvider(storageRootPath),
-        OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "public, max-age=604800, immutable",
-    });
-    uploads.Run(context =>
-    {
-        context.Response.StatusCode = StatusCodes.Status404NotFound;
-        return Task.CompletedTask;
-    });
-});
-
 app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -127,3 +128,8 @@ app.MapControllers();
 app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
+
+string RequiredSetting(string key) =>
+    builder.Configuration[key] is { Length: > 0 } value
+        ? value
+        : throw new InvalidOperationException($"A configuração '{key.Replace(":", "__", StringComparison.Ordinal)}' não foi definida. Verifique o arquivo .env.");

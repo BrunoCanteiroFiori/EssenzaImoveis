@@ -5,7 +5,15 @@ namespace Backend.Infrastructure.Storage;
 /// </summary>
 public interface IFileStorage
 {
-    Task SaveAsync(string relativePath, Stream content, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Grava um arquivo novo. Nunca sobrescreve: o caminho deve ser único.
+    /// </summary>
+    Task SaveAsync(string relativePath, Stream content, string contentType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Abre o arquivo para leitura, ou retorna nulo se ele não existir. O conteúdo permite Seek (leitura por faixa de bytes).
+    /// </summary>
+    Task<StoredFile?> OpenReadAsync(string relativePath, CancellationToken cancellationToken = default);
 
     Task DeleteAsync(string relativePath, CancellationToken cancellationToken = default);
 

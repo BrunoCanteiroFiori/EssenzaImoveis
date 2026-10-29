@@ -83,7 +83,7 @@ export function PropertiesComponent({ properties, onChanged }: { properties: Pro
                           <span className="truncate">{property.title}</span>
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
-                          {property.neighborhood}, {property.city} - {property.state} · {property.imageCount} foto(s)
+                          {property.neighborhood}, {property.city} - {property.state} · {property.mediaCount} foto(s)/vídeo(s)
                         </p>
                       </div>
                     </div>

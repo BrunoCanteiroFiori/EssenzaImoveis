@@ -34,8 +34,8 @@ public sealed class PropertyConfiguration : IEntityTypeConfiguration<Property>
             address.Property(value => value.ZipCode).IsRequired().HasMaxLength(Address.ZipCodeLength).IsFixedLength();
         });
 
-        builder.Ignore(property => property.Images);
-        builder.PrimitiveCollection<List<string>>("_images").HasColumnName("images").IsRequired();
+        builder.Ignore(property => property.Media);
+        builder.PrimitiveCollection<List<string>>("_media").HasColumnName("media").IsRequired().HasDefaultValueSql("'{}'");
 
         builder.HasIndex(property => new { property.Status, property.CreatedAt });
         builder.HasIndex(property => property.SponsoredUntil);

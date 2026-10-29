@@ -20,7 +20,7 @@ public sealed record PropertyResponse(
     int Bathrooms,
     int ParkingSpaces,
     AddressResponse Address,
-    IReadOnlyList<PropertyImageResponse> Images,
+    IReadOnlyList<PropertyMediaResponse> Media,
     DateTimeOffset? SponsoredUntil,
     bool IsSponsored,
     DateTimeOffset CreatedAt,

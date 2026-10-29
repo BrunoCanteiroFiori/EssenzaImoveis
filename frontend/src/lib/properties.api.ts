@@ -68,14 +68,14 @@ export const sponsorProperty = (id: string, days: number) =>
 export const removePropertySponsorship = (id: string) =>
   apiFetch<Property>(`/properties/${id}/sponsorship`, { method: "DELETE" });
 
-export function uploadPropertyImages(id: string, files: File[]) {
+export function uploadPropertyMedia(id: string, files: File[]) {
   const formData = new FormData();
   for (const file of files) formData.append("files", file);
-  return apiFetch<Property>(`/properties/${id}/images`, { method: "POST", formData });
+  return apiFetch<Property>(`/properties/${id}/media`, { method: "POST", formData });
 }
 
-export const removePropertyImage = (id: string, fileName: string) =>
-  apiFetch<Property>(`/properties/${id}/images/${encodeURIComponent(fileName)}`, { method: "DELETE" });
+export const removePropertyMedia = (id: string, fileName: string) =>
+  apiFetch<Property>(`/properties/${id}/media/${encodeURIComponent(fileName)}`, { method: "DELETE" });
 
-export const reorderPropertyImages = (id: string, fileNames: string[]) =>
-  apiFetch<Property>(`/properties/${id}/images/order`, { method: "PUT", body: { fileNames } });
+export const reorderPropertyMedia = (id: string, fileNames: string[]) =>
+  apiFetch<Property>(`/properties/${id}/media/order`, { method: "PUT", body: { fileNames } });

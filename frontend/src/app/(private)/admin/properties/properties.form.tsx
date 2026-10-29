@@ -1,12 +1,15 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
-import { Save } from "lucide-react";
+import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { LoaderCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { Alert } from "@/components/ui/feedback";
+import { ApiError } from "@/lib/api-client";
+import { formatZipCode } from "@/lib/format";
 import { propertyPurposeLabels, propertyPurposes, propertyTypeLabels, propertyTypes } from "@/lib/labels";
 import type { Property, PropertyInput, PropertyPurpose, PropertyType } from "@/lib/properties.types";
+import { getZipCodeAddress } from "@/lib/zip-codes.api";
 
 const states = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA",
@@ -30,6 +33,20 @@ function optionalText(value: FormDataEntryValue | null) {
   return text === "" ? null : text;
 }
 
+type AddressFields = { zipCode: string; street: string; neighborhood: string; city: string; state: string };
+
+type ZipCodeLookup = { status: "idle" | "loading" | "found" | "failed"; message?: string };
+
+const zipCodeDigits = (zipCode: string) => zipCode.replace(/\D/g, "");
+
+function zipCodeLookupError(exception: unknown) {
+  if (exception instanceof ApiError && exception.status === 404) {
+    return "CEP não encontrado. Confira o número ou preencha o endereço manualmente.";
+  }
+  if (exception instanceof ApiError && exception.status === 400) return exception.message;
+  return "Não foi possível consultar o CEP agora. Preencha o endereço manualmente.";
+}
+
 /** Formulário de cadastro e edição dos dados do imóvel (fotos, status e destaque ficam em seções próprias). */
 export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit }: PropertyFormProps) {
   const idPrefix = useId();
@@ -37,7 +54,77 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
   const [type, setType] = useState<PropertyType>(property?.type ?? "House");
+  const [address, setAddress] = useState<AddressFields>(() => ({
+    zipCode: formatZipCode(property?.address.zipCode ?? ""),
+    street: property?.address.street ?? "",
+    neighborhood: property?.address.neighborhood ?? "",
+    city: property?.address.city ?? "",
+    state: property?.address.state ?? "SP",
+  }));
+  const [zipCodeLookup, setZipCodeLookup] = useState<ZipCodeLookup>({ status: "idle" });
+  const zipCodeRequest = useRef<AbortController | null>(null);
+  const autofilledAddress = useRef<Omit<AddressFields, "zipCode"> | null>(null);
+  const streetInput = useRef<HTMLInputElement>(null);
+  const numberInput = useRef<HTMLInputElement>(null);
   const isLand = type === "Land";
+
+  function updateAddress(field: Exclude<keyof AddressFields, "zipCode">) {
+    return (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+      setAddress((current) => ({ ...current, [field]: event.target.value }));
+  }
+
+  /**
+   * Preenche logradouro, bairro, cidade e UF pelo CEP. Uma consulta nova cancela a anterior.
+   * Se o CEP novo falhar, apaga o que veio do CEP anterior e não foi editado, para não salvar endereço de outro CEP.
+   */
+  async function lookUpZipCode(zipCode: string) {
+    zipCodeRequest.current?.abort();
+    const request = new AbortController();
+    zipCodeRequest.current = request;
+    setZipCodeLookup({ status: "loading" });
+    try {
+      const found = await getZipCodeAddress(zipCode, request.signal);
+      if (request.signal.aborted) return;
+      const filled = { street: found.street ?? "", neighborhood: found.neighborhood ?? "", city: found.city, state: found.state };
+      autofilledAddress.current = filled;
+      setAddress((current) => ({ ...current, ...filled }));
+      setZipCodeLookup({
+        status: "found",
+        message: found.street
+          ? "Endereço preenchido pelo CEP. Confira e informe o número."
+          : "CEP geral da cidade: informe o logradouro e o bairro.",
+      });
+      (found.street ? numberInput : streetInput).current?.focus();
+    } catch (exception) {
+      if (request.signal.aborted) return;
+      const stale = autofilledAddress.current;
+      autofilledAddress.current = null;
+      if (stale) {
+        setAddress((current) => ({
+          ...current,
+          street: current.street === stale.street ? "" : current.street,
+          neighborhood: current.neighborhood === stale.neighborhood ? "" : current.neighborhood,
+          city: current.city === stale.city ? "" : current.city,
+        }));
+      }
+      setZipCodeLookup({ status: "failed", message: zipCodeLookupError(exception) });
+    }
+  }
+
+  function handleZipCodeChange(event: ChangeEvent<HTMLInputElement>) {
+    const zipCode = formatZipCode(event.target.value);
+    const digits = zipCodeDigits(zipCode);
+    const changed = digits !== zipCodeDigits(address.zipCode);
+    setAddress((current) => ({ ...current, zipCode }));
+    if (!changed) return;
+
+    if (digits.length === 8) {
+      void lookUpZipCode(digits);
+    } else {
+      zipCodeRequest.current?.abort();
+      setZipCodeLookup({ status: "idle" });
+    }
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -136,26 +223,55 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
         </div>
 
         <div className="grid gap-4 sm:grid-cols-6">
-          <Field label="CEP" htmlFor={`${idPrefix}-zipCode`} className="sm:col-span-2">
-            <Input id={`${idPrefix}-zipCode`} name="zipCode" required inputMode="numeric" maxLength={9} placeholder="00000-000" defaultValue={property?.address.zipCode} />
+          <Field
+            label="CEP"
+            htmlFor={`${idPrefix}-zipCode`}
+            className="sm:col-span-2"
+            hint={
+              zipCodeLookup.status === "loading"
+                ? "Buscando endereço..."
+                : zipCodeLookup.status === "found"
+                  ? zipCodeLookup.message
+                  : "Preenche o endereço automaticamente."
+            }
+            error={zipCodeLookup.status === "failed" ? zipCodeLookup.message : undefined}
+          >
+            <div className="relative">
+              <Input
+                id={`${idPrefix}-zipCode`}
+                name="zipCode"
+                required
+                inputMode="numeric"
+                autoComplete="postal-code"
+                maxLength={9}
+                placeholder="00000-000"
+                className="pr-9"
+                aria-busy={zipCodeLookup.status === "loading"}
+                value={address.zipCode}
+                onChange={handleZipCodeChange}
+              />
+              {zipCodeLookup.status === "loading" && (
+                <LoaderCircle className="absolute right-3 top-3 size-4 animate-spin text-muted-foreground" aria-hidden />
+              )}
+            </div>
           </Field>
           <Field label="Logradouro" htmlFor={`${idPrefix}-street`} className="sm:col-span-4">
-            <Input id={`${idPrefix}-street`} name="street" required maxLength={200} defaultValue={property?.address.street} />
+            <Input ref={streetInput} id={`${idPrefix}-street`} name="street" required maxLength={200} value={address.street} onChange={updateAddress("street")} />
           </Field>
           <Field label="Número" htmlFor={`${idPrefix}-number`} className="sm:col-span-2" hint="Não aparece no site.">
-            <Input id={`${idPrefix}-number`} name="number" maxLength={20} defaultValue={property?.address.number ?? ""} />
+            <Input ref={numberInput} id={`${idPrefix}-number`} name="number" maxLength={20} defaultValue={property?.address.number ?? ""} />
           </Field>
           <Field label="Complemento" htmlFor={`${idPrefix}-complement`} className="sm:col-span-4" hint="Não aparece no site.">
             <Input id={`${idPrefix}-complement`} name="complement" maxLength={100} defaultValue={property?.address.complement ?? ""} />
           </Field>
           <Field label="Bairro" htmlFor={`${idPrefix}-neighborhood`} className="sm:col-span-2">
-            <Input id={`${idPrefix}-neighborhood`} name="neighborhood" required maxLength={100} defaultValue={property?.address.neighborhood} />
+            <Input id={`${idPrefix}-neighborhood`} name="neighborhood" required maxLength={100} value={address.neighborhood} onChange={updateAddress("neighborhood")} />
           </Field>
           <Field label="Cidade" htmlFor={`${idPrefix}-city`} className="sm:col-span-3">
-            <Input id={`${idPrefix}-city`} name="city" required maxLength={100} defaultValue={property?.address.city} />
+            <Input id={`${idPrefix}-city`} name="city" required maxLength={100} value={address.city} onChange={updateAddress("city")} />
           </Field>
           <Field label="UF" htmlFor={`${idPrefix}-state`}>
-            <Select id={`${idPrefix}-state`} name="state" required defaultValue={property?.address.state ?? "SP"}>
+            <Select id={`${idPrefix}-state`} name="state" required value={address.state} onChange={updateAddress("state")}>
               {states.map((state) => (
                 <option key={state} value={state}>
                   {state}

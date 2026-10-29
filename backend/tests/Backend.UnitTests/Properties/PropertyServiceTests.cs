@@ -99,7 +99,7 @@ public sealed class PropertyServiceTests
     }
 
     [Fact]
-    public async Task DeleteAsync_WhenPropertyExists_ShouldRemovePropertyAndImages()
+    public async Task DeleteAsync_WhenPropertyExists_ShouldRemovePropertyAndMediaFolder()
     {
         var property = TestData.Property();
         _propertyRepository.GetByIdAsync(property.Id, Arg.Any<CancellationToken>()).Returns(property);
@@ -109,6 +109,6 @@ public sealed class PropertyServiceTests
         Assert.True(result.IsSuccess);
         _propertyRepository.Received(1).Remove(property);
         await _unitOfWork.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
-        await _fileStorage.Received(1).DeleteDirectoryAsync(PropertyImagePaths.GetDirectory(property.Id), Arg.Any<CancellationToken>());
+        await _fileStorage.Received(1).DeleteDirectoryAsync(PropertyMediaPaths.GetDirectory(property.Id), Arg.Any<CancellationToken>());
     }
 }
