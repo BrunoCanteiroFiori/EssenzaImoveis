@@ -226,7 +226,9 @@ jobs:
             fi
           done
           [ "$invalid" -eq 0 ] || exit 1
-          for name in $names; do
+          # Certificado do Caddy para conexões sem SNI (acesso pelo IP): o primeiro endereço de SITE_ADDRESS.
+          DEFAULT_SNI="${SITE_ADDRESS%%,*}"
+          for name in $names DEFAULT_SNI; do
             printf "%s='%s'\n" "$name" "${!name}"
           done | ssh deploy-server \
             "cd '$DEPLOY_PATH' && if [ -f .env ]; then cp -p .env .env.anterior; fi && umask 077 && cat > .env.novo && mv .env.novo .env"

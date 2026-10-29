@@ -1,6 +1,17 @@
-# Proxy reverso público. Os endereços vêm do .env do servidor:
-#   só IP:      SITE_ADDRESS=:80                    API_ADDRESS=:8080            (HTTP)
-#   com domínio: SITE_ADDRESS=seudominio.com.br     API_ADDRESS=api.seudominio.com.br  (HTTPS automático)
+# Proxy reverso público. Os endereços vêm do .env do servidor, gerado pelo workflow:
+#   só IP:       SITE_ADDRESS=SEU_IP                  API_ADDRESS=SEU_IP:8080
+#   com domínio: SITE_ADDRESS=seudominio.com.br       API_ADDRESS=api.seudominio.com.br
+# Nos dois casos o Caddy emite e renova sozinho os certificados do Let's Encrypt e redireciona HTTP para HTTPS.
+{
+	# Quem acessa pelo IP não informa o nome do site (SNI) ao abrir a conexão TLS, e dentro do Docker o IP local da
+	# conexão é o do container. Este nome (o primeiro de SITE_ADDRESS) escolhe o certificado nesse caso.
+	default_sni {$DEFAULT_SNI}
+	# O Let's Encrypt só emite certificado para IP no perfil "shortlived" (válido por 6 dias, renovado sozinho).
+	# O perfil também vale para domínio.
+	cert_issuer acme {
+		profile shortlived
+	}
+}
 
 {$SITE_ADDRESS} {
 	encode zstd gzip
