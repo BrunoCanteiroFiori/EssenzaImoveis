@@ -26,6 +26,8 @@ services:
     env_file: .env
     environment:
       <<: *backend-environment
+      # O bundle monta o host da API só para ler o modelo: as migrations não usam o Google Drive.
+      Storage__Provider: Local
     depends_on:
       postgres:
         condition: service_healthy
@@ -38,8 +40,6 @@ services:
       <<: *backend-environment
       # A API só é acessível pela rede interna do Docker, então o Caddy é o único proxy que chega até ela.
       ForwardedHeaders__KnownNetworks: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
-    volumes:
-      - uploads:/app/uploads
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -74,6 +74,5 @@ services:
 
 volumes:
   postgres-data:
-  uploads:
   caddy-data:
   caddy-config:

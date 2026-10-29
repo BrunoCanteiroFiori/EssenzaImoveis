@@ -10,8 +10,9 @@ Workflow: [.github/workflows/deploy.yml](../.github/workflows/deploy.yml). Roda 
 4. **Publicar no servidor** por SSH: copia `compose.yaml`, `Caddyfile`, `deploy.sh` e `.env.example` para `DEPLOY_PATH`
    e roda `deploy.sh`, que sobe Postgres → migrations → API → site → Caddy e confere se a API e o site respondem.
 
-Só o Caddy fica exposto (portas 80, 443 e 8080). Postgres, API e site ficam na rede interna do Docker. O banco, as fotos
-dos imóveis e os certificados ficam em volumes (`postgres-data`, `uploads`, `caddy-data`) e sobrevivem aos deploys.
+Só o Caddy fica exposto (portas 80, 443 e 8080). Postgres, API e site ficam na rede interna do Docker. O banco e os
+certificados ficam em volumes (`postgres-data`, `caddy-data`) e sobrevivem aos deploys. As fotos e os vídeos dos imóveis
+ficam no Google Drive (veja [Google Drive](#google-drive-fotos-e-vídeos)).
 
 ## 1. Preparar o servidor (uma vez)
 
@@ -43,6 +44,54 @@ Depois, no servidor, editar `/opt/sitecorretora/.env` e preencher as senhas e o 
 openssl rand -hex 24     # POSTGRES_PASSWORD
 openssl rand -base64 48  # Jwt__Secret
 ```
+
+Preencher também as variáveis `GoogleDrive__*` (próxima seção).
+
+## Google Drive (fotos e vídeos)
+
+As fotos e os vídeos ficam no Google Drive de uma conta Google pessoal. O backend cria, na raiz do Meu Drive, a pasta
+`GoogleDrive__RootFolderName` (padrão `SiteCorretora`) com leitura pública para quem tiver o link. Dentro dela fica a
+pasta `properties`, com uma subpasta por imóvel (o nome da subpasta é o id do imóvel). O site não usa links do Drive: a
+API lê o arquivo do Drive e o entrega ao navegador, com cache de um ano. Excluir uma foto, um vídeo ou o imóvel manda o
+arquivo ou a subpasta para a lixeira do Drive, onde fica por 30 dias.
+
+O acesso usa OAuth com o escopo `drive.file`: o backend só enxerga o que ele mesmo criou, e não o resto do seu Drive.
+Para gerar as credenciais (uma vez só):
+
+1. Em [console.cloud.google.com](https://console.cloud.google.com), criar um projeto (ex.: `site-corretora`).
+2. **APIs e serviços > Biblioteca**: ativar a **Google Drive API**.
+3. **APIs e serviços > Tela de consentimento OAuth** (Google Auth Platform):
+   - Tipo de usuário **Externo**; preencher nome do app e e-mails de contato.
+   - Em **Acesso a dados**, adicionar o escopo `https://www.googleapis.com/auth/drive.file`.
+   - Em **Público**, clicar em **Publicar app** (status **Em produção**). Em **Teste**, o refresh token expira em 7
+     dias. Com só o escopo `drive.file`, o app não passa por verificação do Google.
+4. **APIs e serviços > Credenciais > Criar credenciais > ID do cliente OAuth**:
+   - Tipo **Aplicativo da Web**.
+   - Em **URIs de redirecionamento autorizados**, adicionar `https://developers.google.com/oauthplayground`.
+   - Guardar o **ID do cliente** e a **Chave secreta do cliente**.
+5. Gerar o refresh token no [OAuth 2.0 Playground](https://developers.google.com/oauthplayground):
+   - Engrenagem (canto superior direito): marcar **Use your own OAuth credentials** e colar o ID e a chave secreta.
+   - Em **Step 1**, digitar `https://www.googleapis.com/auth/drive.file` no campo de escopo e clicar em **Authorize APIs**.
+   - Entrar com a conta Google que vai guardar as fotos e permitir o acesso (a tela avisa que o app não foi verificado:
+     **Avançado > Acessar**).
+   - Em **Step 2**, clicar em **Exchange authorization code for tokens** e copiar o **Refresh token**.
+6. Colocar os três valores no `.env` (do servidor e/ou de `backend/.env` para desenvolvimento):
+   ```
+   Storage__Provider=GoogleDrive
+   GoogleDrive__ClientId=...
+   GoogleDrive__ClientSecret=...
+   GoogleDrive__RefreshToken=...
+   ```
+
+Para desenvolver sem conta Google, usar `Storage__Provider=Local` em `backend/.env`: os arquivos ficam em
+`src/Backend.Api/uploads`.
+
+Limites: até 30 fotos e vídeos por imóvel, dos quais até 5 vídeos. Fotos JPG, PNG ou WebP de até 10 MB; vídeos MP4 ou
+WebM de até 200 MB (o MOV do iPhone precisa ser exportado em MP4). A conta pessoal tem 15 GB grátis, divididos com o
+Gmail.
+
+Quem já tinha o volume `uploads` de versões anteriores pode apagá-lo depois do deploy: `docker volume rm
+sitecorretora_uploads`. As fotos antigas não são migradas.
 
 ## 2. Chave SSH do GitHub
 

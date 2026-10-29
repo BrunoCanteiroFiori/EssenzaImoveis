@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Bath, BedDouble, Car, MapPin, MessageCircle, Receipt, Ruler, Wallet } from "lucide-react";
 import { ContactForm } from "@/components/properties/contact-form";
-import { ImageCarousel } from "@/components/properties/image-carousel";
+import { MediaCarousel } from "@/components/properties/media-carousel";
 import { SponsoredBadge } from "@/components/properties/sponsored-badge";
 import { TemperatureBadge } from "@/components/properties/temperature-badge";
 import { ViewTracker } from "@/components/properties/view-tracker";
@@ -20,7 +20,7 @@ export async function PropertyDetailsComponent({ params }: { params: Promise<{ i
   const property = await getPropertyDetails(id);
   if (!property) notFound();
 
-  const images = property.imageUrls.map((url) => assetUrl(url)).filter((url): url is string => url !== null);
+  const media = property.media.map((item) => ({ type: item.type, url: assetUrl(item.url) ?? "" }));
   const pageUrl = `${siteConfig.url}/properties/${property.id}`;
   const whatsapp = whatsappLink(`Olá! Tenho interesse no imóvel "${property.title}" (${formatPrice(property.price)}). ${pageUrl}`);
   const specs = [
@@ -41,7 +41,7 @@ export async function PropertyDetailsComponent({ params }: { params: Promise<{ i
 
       <div className="grid gap-8 lg:grid-cols-[1fr_24rem]">
         <div className="flex min-w-0 flex-col gap-8">
-          <ImageCarousel images={images} title={property.title} />
+          <MediaCarousel items={media} title={property.title} />
 
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">

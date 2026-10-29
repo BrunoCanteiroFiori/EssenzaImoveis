@@ -88,7 +88,7 @@ public sealed class PropertyService(
 
         propertyRepository.Remove(property);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        await fileStorage.DeleteDirectoryAsync(PropertyImagePaths.GetDirectory(id), cancellationToken);
+        await fileStorage.DeleteDirectoryAsync(PropertyMediaPaths.GetDirectory(id), cancellationToken);
         return Result.Success();
     }
 

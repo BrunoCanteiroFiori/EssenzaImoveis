@@ -5,7 +5,7 @@ export const siteConfig = {
   whatsappNumber: (process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "").replace(/\D/g, ""),
 };
 
-/** URL absoluta de um arquivo servido pela API (ex.: fotos em /uploads/...). */
+/** URL absoluta de um arquivo servido pela API (ex.: fotos e vídeos em /properties/{id}/media/...). */
 export function assetUrl(path: string | null | undefined): string | null {
   if (!path) return null;
   return path.startsWith("http") ? path : `${siteConfig.apiUrl}${path}`;

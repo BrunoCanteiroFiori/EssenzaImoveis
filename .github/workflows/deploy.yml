@@ -37,6 +37,7 @@ jobs:
         env:
           ConnectionStrings__Default: Host=localhost;Database=ci;Username=ci;Password=ci
           Jwt__Secret: segredo-usado-apenas-para-montar-o-modelo-no-ci
+          Storage__Provider: Local
         run: dotnet ef migrations has-pending-model-changes --project src/Backend.Repository --startup-project src/Backend.Api
 
   frontend:

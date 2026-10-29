@@ -26,6 +26,7 @@ const fallbackMessages: Record<number, string> = {
   403: "Você não tem permissão para esta ação.",
   404: "Registro não encontrado.",
   409: "Conflito com um registro existente.",
+  413: "O envio passou do tamanho máximo permitido.",
   429: "Muitas tentativas. Aguarde alguns minutos e tente de novo.",
 };
 

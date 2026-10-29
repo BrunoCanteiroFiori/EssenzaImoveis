@@ -61,7 +61,7 @@ public sealed class PropertySearchServiceTests
     public async Task GetDetailsAsync_WhenPropertyIsAvailable_ShouldHideFullAddress()
     {
         var property = TestData.Property();
-        property.AddImage("foto.jpg", TestData.Now);
+        property.AddMedia("foto.jpg", TestData.Now);
         _propertyRepository.GetByIdAsync(property.Id, Arg.Any<CancellationToken>()).Returns(property);
         _propertyViewRepository
             .CountByPropertySinceAsync(Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
@@ -71,7 +71,8 @@ public sealed class PropertySearchServiceTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal("Rua das Flores", result.Value.Street);
-        Assert.Equal(PropertyImagePaths.GetUrl(property.Id, "foto.jpg"), Assert.Single(result.Value.ImageUrls));
+        Assert.Equal(PropertyMediaPaths.GetUrl(property.Id, "foto.jpg"), Assert.Single(result.Value.Media).Url);
+        Assert.Equal(PropertyMediaPaths.GetUrl(property.Id, "foto.jpg"), result.Value.CoverImageUrl);
         Assert.Equal(TemperatureLevel.Cold, result.Value.Temperature.Level);
     }
 

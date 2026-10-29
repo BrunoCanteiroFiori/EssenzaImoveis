@@ -6,11 +6,14 @@ public sealed class Property : AggregateRoot
 {
     public const int TitleMaxLength = 150;
     public const int DescriptionMaxLength = 5000;
-    public const int ImageFileNameMaxLength = 100;
-    public const int MaxImages = 30;
+    public const int MediaFileNameMaxLength = 100;
+    public const int MaxMedia = 30;
+    public const int MaxVideos = 5;
     public const int MaxRooms = 99;
 
-    private List<string> _images = [];
+    private static readonly string[] _videoExtensions = [".mp4", ".webm"];
+
+    private List<string> _media = [];
 
     private Property()
     {
@@ -42,9 +45,15 @@ public sealed class Property : AggregateRoot
 
     public Address Address { get; private set; } = null!;
 
-    public IReadOnlyList<string> Images => _images.AsReadOnly();
+    /// <summary>
+    /// Fotos e vídeos na ordem do carrossel (nomes de arquivo).
+    /// </summary>
+    public IReadOnlyList<string> Media => _media.AsReadOnly();
 
-    public string? CoverImage => _images.Count > 0 ? _images[0] : null;
+    /// <summary>
+    /// Capa do anúncio: a primeira foto do carrossel. Vídeo nunca é capa.
+    /// </summary>
+    public string? CoverImage => _media.FirstOrDefault(fileName => GetMediaType(fileName) == PropertyMediaType.Photo);
 
     public DateTimeOffset? SponsoredUntil { get; private set; }
 
@@ -152,49 +161,75 @@ public sealed class Property : AggregateRoot
 
     public bool IsSponsored(DateTimeOffset now) => SponsoredUntil is not null && SponsoredUntil > now;
 
-    public void AddImage(string fileName, DateTimeOffset now)
+    /// <summary>
+    /// Tipo da mídia pela extensão do nome do arquivo: <c>.mp4</c> e <c>.webm</c> são vídeos; os demais, fotos.
+    /// </summary>
+    public static PropertyMediaType GetMediaType(string fileName) =>
+        _videoExtensions.Any(extension => fileName.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
+            ? PropertyMediaType.Video
+            : PropertyMediaType.Photo;
+
+    /// <summary>
+    /// Adiciona uma foto ou um vídeo. Fotos entram no fim do carrossel; vídeos entram no começo, logo depois dos vídeos que já
+    /// abrem o carrossel. A ordem pode ser mudada depois com <see cref="ReorderMedia"/>.
+    /// </summary>
+    public void AddMedia(string fileName, DateTimeOffset now)
     {
-        if (string.IsNullOrWhiteSpace(fileName) || fileName.Length > ImageFileNameMaxLength)
+        if (string.IsNullOrWhiteSpace(fileName) || fileName.Length > MediaFileNameMaxLength)
         {
-            throw new DomainException("Nome de arquivo de imagem inválido.");
+            throw new DomainException("Nome de arquivo de foto ou vídeo inválido.");
         }
 
-        if (_images.Count >= MaxImages)
+        if (_media.Count >= MaxMedia)
         {
-            throw new DomainException($"Um imóvel pode ter no máximo {MaxImages} imagens.");
+            throw new DomainException($"Um imóvel pode ter no máximo {MaxMedia} fotos e vídeos.");
         }
 
-        if (_images.Contains(fileName))
+        if (_media.Contains(fileName))
         {
-            throw new DomainException("Esta imagem já foi adicionada ao imóvel.");
+            throw new DomainException("Este arquivo já foi adicionado ao imóvel.");
         }
 
-        _images = [.. _images, fileName];
+        if (GetMediaType(fileName) == PropertyMediaType.Photo)
+        {
+            _media = [.. _media, fileName];
+        }
+        else
+        {
+            if (_media.Count(IsVideo) >= MaxVideos)
+            {
+                throw new DomainException($"Um imóvel pode ter no máximo {MaxVideos} vídeos.");
+            }
+
+            var position = _media.TakeWhile(IsVideo).Count();
+            _media = [.. _media[..position], fileName, .. _media[position..]];
+        }
+
         Touch(now);
     }
 
-    public void RemoveImage(string fileName, DateTimeOffset now)
+    public void RemoveMedia(string fileName, DateTimeOffset now)
     {
-        if (!_images.Contains(fileName))
+        if (!_media.Contains(fileName))
         {
-            throw new DomainException("A imagem não pertence a este imóvel.");
+            throw new DomainException("O arquivo não pertence a este imóvel.");
         }
 
-        _images = [.. _images.Where(image => image != fileName)];
+        _media = [.. _media.Where(media => media != fileName)];
         Touch(now);
     }
 
     /// <summary>
-    /// Reordena as imagens. A primeira passa a ser a capa. A lista deve conter exatamente as imagens atuais.
+    /// Reordena fotos e vídeos do carrossel. A lista deve conter exatamente as mídias atuais. A capa continua sendo a primeira foto.
     /// </summary>
-    public void ReorderImages(IReadOnlyList<string> fileNames, DateTimeOffset now)
+    public void ReorderMedia(IReadOnlyList<string> fileNames, DateTimeOffset now)
     {
-        if (fileNames.Count != _images.Count || fileNames.Distinct().Count() != fileNames.Count || fileNames.Except(_images).Any())
+        if (fileNames.Count != _media.Count || fileNames.Distinct().Count() != fileNames.Count || fileNames.Except(_media).Any())
         {
-            throw new DomainException("A nova ordem deve conter exatamente as imagens atuais do imóvel.");
+            throw new DomainException("A nova ordem deve conter exatamente as fotos e vídeos atuais do imóvel.");
         }
 
-        _images = [.. fileNames];
+        _media = [.. fileNames];
         Touch(now);
     }
 
@@ -320,6 +355,8 @@ public sealed class Property : AggregateRoot
         Bathrooms = bathrooms;
         ParkingSpaces = parkingSpaces;
     }
+
+    private static bool IsVideo(string fileName) => GetMediaType(fileName) == PropertyMediaType.Video;
 
     private void Touch(DateTimeOffset now) => UpdatedAt = now.ToUniversalTime();
 }
