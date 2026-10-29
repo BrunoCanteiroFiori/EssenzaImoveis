@@ -45,7 +45,7 @@ openssl rand -hex 24     # POSTGRES_PASSWORD
 openssl rand -base64 48  # Jwt__Secret
 ```
 
-Preencher também as variáveis `GoogleDrive__*` (próxima seção).
+As credenciais do Google Drive não vão no `.env`: ficam nos secrets do GitHub (próxima seção e seção 3).
 
 ## Google Drive (fotos e vídeos)
 
@@ -63,8 +63,12 @@ Para gerar as credenciais (uma vez só):
 3. **APIs e serviços > Tela de consentimento OAuth** (Google Auth Platform):
    - Tipo de usuário **Externo**; preencher nome do app e e-mails de contato.
    - Em **Acesso a dados**, adicionar o escopo `https://www.googleapis.com/auth/drive.file`.
-   - Em **Público**, clicar em **Publicar app** (status **Em produção**). Em **Teste**, o refresh token expira em 7
-     dias. Com só o escopo `drive.file`, o app não passa por verificação do Google.
+   - Em **Público**, clicar em **Publicar app** (status **Em produção**). Com só o escopo `drive.file`, o app não
+     passa por verificação, mas o Google só deixa publicar com o **Branding** completo: página inicial, política de
+     privacidade e termos de serviço num domínio autorizado (IP não vale), além dos e-mails. Não enviar logotipo: com
+     logotipo o Google exige verificação.
+   - Enquanto o site não tiver domínio, deixar em **Teste** e adicionar a conta Google em **Usuários de teste**. Funciona,
+     mas o refresh token **expira em 7 dias**: é preciso gerar outro (passo 5) e atualizar o secret toda semana.
 4. **APIs e serviços > Credenciais > Criar credenciais > ID do cliente OAuth**:
    - Tipo **Aplicativo da Web**.
    - Em **URIs de redirecionamento autorizados**, adicionar `https://developers.google.com/oauthplayground`.
@@ -75,7 +79,11 @@ Para gerar as credenciais (uma vez só):
    - Entrar com a conta Google que vai guardar as fotos e permitir o acesso (a tela avisa que o app não foi verificado:
      **Avançado > Acessar**).
    - Em **Step 2**, clicar em **Exchange authorization code for tokens** e copiar o **Refresh token**.
-6. Colocar os três valores no `.env` (do servidor e/ou de `backend/.env` para desenvolvimento):
+6. Produção: cadastrar os três valores como secrets do environment `production` no GitHub (seção 3):
+   `GOOGLEDRIVE__CLIENTID`, `GOOGLEDRIVE__CLIENTSECRET` e `GOOGLEDRIVE__REFRESHTOKEN`. A cada deploy, o workflow grava
+   esses valores (com `Storage__Provider=GoogleDrive`) em `google-drive.env` no servidor, legível só pelo dono, e a API lê
+   esse arquivo depois do `.env`. Trocou um secret? Rode **Actions > Deploy > Run workflow**.
+7. Desenvolvimento: colocar os mesmos valores em `backend/.env`:
    ```
    Storage__Provider=GoogleDrive
    GoogleDrive__ClientId=...
@@ -90,8 +98,8 @@ Limites: até 30 fotos e vídeos por imóvel, dos quais até 5 vídeos. Fotos JP
 WebM de até 200 MB (o MOV do iPhone precisa ser exportado em MP4). A conta pessoal tem 15 GB grátis, divididos com o
 Gmail.
 
-Quem já tinha o volume `uploads` de versões anteriores pode apagá-lo depois do deploy: `docker volume rm
-sitecorretora_uploads`. As fotos antigas não são migradas.
+As fotos antigas não são migradas: continuam no volume `sitecorretora_uploads` do servidor, que não é mais usado. Depois
+de reenviar pelo admin as que forem reais, o volume pode ser apagado com `docker volume rm sitecorretora_uploads`.
 
 ## 2. Chave SSH do GitHub
 
@@ -117,6 +125,14 @@ Secrets:
 | `SSH_USER` | usuário do SSH |
 | `SSH_PRIVATE_KEY` | conteúdo do arquivo `deploy_key` (chave privada) |
 | `SSH_KNOWN_HOSTS` | saída do `ssh-keyscan` (garante que o GitHub está falando com o seu servidor) |
+
+Secrets do environment `production` (**Settings > Environments > production > Environment secrets**):
+
+| Nome | Valor |
+| --- | --- |
+| `GOOGLEDRIVE__CLIENTID` | ID do cliente OAuth (seção Google Drive, passo 4) |
+| `GOOGLEDRIVE__CLIENTSECRET` | chave secreta do cliente OAuth |
+| `GOOGLEDRIVE__REFRESHTOKEN` | refresh token gerado no OAuth Playground (passo 5) |
 
 Variables:
 

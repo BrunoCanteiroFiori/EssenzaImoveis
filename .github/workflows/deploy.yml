@@ -184,6 +184,24 @@ jobs:
           ssh deploy-server "mkdir -p '$DEPLOY_PATH'"
           scp deploy/compose.yaml deploy/Caddyfile deploy/deploy.sh deploy/.env.example "deploy-server:$DEPLOY_PATH/"
 
+      # Os valores vão pela entrada padrão do SSH (não aparecem na linha de comando) para o google-drive.env do servidor,
+      # que só o dono lê. A API lê esse arquivo depois do .env, então estes valores prevalecem.
+      - name: Enviar credenciais do Google Drive
+        env:
+          GOOGLEDRIVE__CLIENTID: ${{ secrets.GOOGLEDRIVE__CLIENTID }}
+          GOOGLEDRIVE__CLIENTSECRET: ${{ secrets.GOOGLEDRIVE__CLIENTSECRET }}
+          GOOGLEDRIVE__REFRESHTOKEN: ${{ secrets.GOOGLEDRIVE__REFRESHTOKEN }}
+        run: |
+          for name in GOOGLEDRIVE__CLIENTID GOOGLEDRIVE__CLIENTSECRET GOOGLEDRIVE__REFRESHTOKEN; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Defina o secret $name no environment production (veja deploy/README.md)."
+              exit 1
+            fi
+          done
+          printf 'Storage__Provider=GoogleDrive\nGoogleDrive__ClientId=%s\nGoogleDrive__ClientSecret=%s\nGoogleDrive__RefreshToken=%s\n' \
+            "$GOOGLEDRIVE__CLIENTID" "$GOOGLEDRIVE__CLIENTSECRET" "$GOOGLEDRIVE__REFRESHTOKEN" \
+            | ssh deploy-server "umask 077 && cat > '$DEPLOY_PATH/google-drive.env'"
+
       - name: Subir a nova versão
         env:
           IMAGE_PREFIX: ${{ needs.images.outputs.image-prefix }}

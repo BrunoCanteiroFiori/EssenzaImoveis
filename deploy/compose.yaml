@@ -35,7 +35,10 @@ services:
   api:
     image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    env_file: .env
+    # google-drive.env é gravado a cada deploy a partir dos secrets do GitHub e prevalece sobre o .env.
+    env_file:
+      - .env
+      - google-drive.env
     environment:
       <<: *backend-environment
       # A API só é acessível pela rede interna do Docker, então o Caddy é o único proxy que chega até ela.
