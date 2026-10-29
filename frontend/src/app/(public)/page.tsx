@@ -98,7 +98,7 @@ async function FeaturedSections() {
       <FeaturedSection
         title="Destaques"
         description="Imóveis em evidência selecionados pela corretora."
-        icon={<Star className="size-5 fill-amber-400 text-amber-400" aria-hidden />}
+        icon={<Star className="size-5 fill-gold text-gold" aria-hidden />}
         properties={featured.sponsored}
         href="/properties"
       />

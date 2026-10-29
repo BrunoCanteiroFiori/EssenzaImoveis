@@ -17,7 +17,7 @@ export function PropertyCard({ property, priority = false }: { property: Propert
     <article
       className={cn(
         "group flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm transition-shadow hover:shadow-md",
-        property.isSponsored && "ring-2 ring-amber-400/70",
+        property.isSponsored && "ring-2 ring-gold/70",
       )}
     >
       <Link href={`/properties/${property.id}`} className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">

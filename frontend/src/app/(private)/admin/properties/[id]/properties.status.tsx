@@ -78,7 +78,7 @@ export function PropertyStatusPanel({ property, readOnly, onChanged }: StatusPan
         {property.isSponsored && property.sponsoredUntil ? (
           <div className="flex flex-col gap-3">
             <p className="flex items-center gap-2 text-sm">
-              <Star className="size-4 fill-amber-400 text-amber-400" aria-hidden />
+              <Star className="size-4 fill-gold text-gold" aria-hidden />
               Em destaque até <strong>{formatDateTime(property.sponsoredUntil)}</strong>
             </p>
             {!readOnly && (

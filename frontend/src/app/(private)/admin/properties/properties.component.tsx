@@ -79,7 +79,7 @@ export function PropertiesComponent({ properties, onChanged }: { properties: Pro
                       </div>
                       <div className="min-w-0">
                         <p className="flex items-center gap-1.5 font-medium">
-                          {property.isSponsored && <Star className="size-4 shrink-0 fill-amber-400 text-amber-400" aria-label="Em destaque" />}
+                          {property.isSponsored && <Star className="size-4 shrink-0 fill-gold text-gold" aria-label="Em destaque" />}
                           <span className="truncate">{property.title}</span>
                         </p>
                         <p className="truncate text-xs text-muted-foreground">

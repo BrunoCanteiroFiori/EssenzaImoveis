@@ -117,7 +117,7 @@ export function PropertyMediaManager({ property, readOnly, onChanged }: MediaMan
                   )}
                 </div>
                 {index === coverIndex && (
-                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-xs font-semibold text-amber-950">
+                  <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-gold px-2 py-0.5 text-xs font-semibold text-gold-foreground">
                     <Star className="size-3 fill-current" aria-hidden /> Capa
                   </span>
                 )}
