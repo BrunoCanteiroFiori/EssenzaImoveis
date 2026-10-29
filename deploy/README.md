@@ -34,8 +34,9 @@ sudo mkdir -p /opt/essenzaimoveis && sudo chown $USER /opt/essenzaimoveis
 ```
 
 Liberar na regra da subnet/firewall da nuvem:
-- Só IP: TCP **80** (site) e TCP **8080** (API).
-- Com domínio: TCP **80**, TCP e UDP **443**. A 8080 pode ser fechada.
+- TCP **80**: validação do Let's Encrypt e redirecionamento para HTTPS.
+- TCP e UDP **443**: site.
+- TCP **8080**: API, só enquanto estiver no IP. Com domínio pode ser fechada.
 
 ## Google Drive (fotos e vídeos)
 
@@ -115,8 +116,8 @@ usa environment, então estas precisam ficar no repositório:
 
 | Nome | Só IP | Com domínio |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SITE_URL` | `http://SEU_IP` | `https://seudominio.com.br` |
-| `NEXT_PUBLIC_API_URL` | `http://SEU_IP:8080` | `https://api.seudominio.com.br` |
+| `NEXT_PUBLIC_SITE_URL` | `https://SEU_IP` | `https://seudominio.com.br` |
+| `NEXT_PUBLIC_API_URL` | `https://SEU_IP:8080` | `https://api.seudominio.com.br` |
 | `NEXT_PUBLIC_SITE_NAME` | nome da corretora | |
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | DDI + DDD + número, só dígitos | |
 | `DEPLOY_PATH` | opcional, padrão `/opt/essenzaimoveis` | |
@@ -138,10 +139,10 @@ simples nem quebra de linha:
 
 | Nome | Só IP | Com domínio | Padrão se não definir |
 | --- | --- | --- | --- |
-| `SITE_ADDRESS` | `:80` | `seudominio.com.br, www.seudominio.com.br` | obrigatória |
-| `API_ADDRESS` | `:8080` | `api.seudominio.com.br` | obrigatória |
-| `AUTH__SECURECOOKIES` | `false` | `true` | obrigatória |
-| `CORS__ALLOWEDORIGINS` | `http://SEU_IP` | `https://seudominio.com.br,https://www.seudominio.com.br` | `NEXT_PUBLIC_SITE_URL` |
+| `SITE_ADDRESS` | `SEU_IP` | `seudominio.com.br, www.seudominio.com.br` | obrigatória |
+| `API_ADDRESS` | `SEU_IP:8080` | `api.seudominio.com.br` | obrigatória |
+| `AUTH__SECURECOOKIES` | `true` | `true` | obrigatória |
+| `CORS__ALLOWEDORIGINS` | `https://SEU_IP` | `https://seudominio.com.br,https://www.seudominio.com.br` | `NEXT_PUBLIC_SITE_URL` |
 | `POSTGRES_USER` | | | `essenzaimoveis` |
 | `POSTGRES_DB` | | | `essenzaimoveis` |
 | `JWT__ISSUER` | | | `corretora-api` |
@@ -182,9 +183,25 @@ volumes antigos ficam intactos como backup. Antes do merge que traz o nome novo:
 
 ## Enquanto estiver só no IP
 
-Sem domínio não há certificado, então tudo trafega em HTTP: senha do login e cookies de sessão passam sem criptografia.
-Por isso `AUTH__SECURECOOKIES` fica `false` (o navegador recusa cookie `Secure` em HTTP). Evite entrar no admin por redes
-públicas e configure o domínio assim que puder.
+O Let's Encrypt emite certificado para o IP no perfil `shortlived`, válido por 6 dias. O Caddy renova sozinho bem antes
+de vencer, desde que o servidor alcance o Let's Encrypt e a porta 80 continue aberta. O site fica em `https://SEU_IP` e a
+API em `https://SEU_IP:8080`, com o mesmo certificado.
+
+Quem acessa pelo IP não manda o nome do site na conexão TLS (SNI). Por isso o workflow grava no `.env` o `DEFAULT_SNI`
+(o primeiro endereço de `SITE_ADDRESS`), que o Caddy usa para escolher o certificado.
+
+Para ligar o HTTPS no IP (ou depois de trocar o IP do servidor):
+
+1. Na regra da subnet/firewall, liberar TCP e UDP 443 (seção 1) **antes** do deploy: cada validação que falha conta no
+   limite do Let's Encrypt.
+2. No environment `production`, trocar `SITE_ADDRESS`, `API_ADDRESS`, `AUTH__SECURECOOKIES` e `CORS__ALLOWEDORIGINS`
+   para os valores da coluna "Só IP" (seção 3).
+3. Nas repository variables, trocar `NEXT_PUBLIC_SITE_URL` e `NEXT_PUBLIC_API_URL` para os endereços `https://`.
+4. Rodar **Actions > Deploy > Run workflow**. O site é gerado de novo com os endereços novos. No servidor, conferir se
+   o certificado saiu:
+   ```bash
+   docker compose logs caddy | grep -i "certificate obtained"
+   ```
 
 ## Quando tiver domínio
 

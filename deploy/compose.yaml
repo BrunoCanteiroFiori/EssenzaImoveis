@@ -60,6 +60,7 @@ services:
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:?defina SITE_ADDRESS no .env}
       API_ADDRESS: ${API_ADDRESS:?defina API_ADDRESS no .env}
+      DEFAULT_SNI: ${DEFAULT_SNI:?defina DEFAULT_SNI no .env}
     ports:
       - "80:80"
       - "443:443"
