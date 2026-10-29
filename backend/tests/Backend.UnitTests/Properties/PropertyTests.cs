@@ -28,6 +28,28 @@ public sealed class PropertyTests
     }
 
     [Fact]
+    public void Create_WithMessyTitleAndDescription_ShouldStoreNormalizedText()
+    {
+        var property = Property.Create(
+            " Casa\u00A0em  Sa\u0303o Paulo\u0000 ",
+            "Sala ampla.\r\n\r\n\r\nCozinha\u200B planejada.  ",
+            PropertyType.House,
+            PropertyPurpose.Sale,
+            100_000m,
+            null,
+            null,
+            100m,
+            2,
+            1,
+            1,
+            TestData.Address(),
+            TestData.Now);
+
+        Assert.Equal("Casa em São Paulo", property.Title);
+        Assert.Equal("Sala ampla.\n\nCozinha planejada.", property.Description);
+    }
+
+    [Fact]
     public void Create_WithTitleAboveMaxLength_ShouldThrowDomainException()
     {
         var title = new string('a', Property.TitleMaxLength + 1);

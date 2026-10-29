@@ -15,6 +15,12 @@ export function formatPhone(digits: string) {
   return digits;
 }
 
+/** Máscara de CEP (00000-000) para o que foi digitado ou colado: descarta o que não é dígito e o excesso. */
+export function formatZipCode(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
+}
+
 export function pluralize(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
 }

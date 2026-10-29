@@ -2,6 +2,7 @@ using Backend.Infrastructure.Database;
 using Backend.Infrastructure.Http;
 using Backend.Infrastructure.Security;
 using Backend.Infrastructure.Storage;
+using Backend.Infrastructure.ZipCodes;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
@@ -11,13 +12,14 @@ public static class DependencyInjection
 {
     /// <summary>
     /// Registra os recursos reutilizáveis: cliente de conexão com o PostgreSQL (<see cref="NpgsqlDataSource"/>),
-    /// fábrica de conexões, cliente HTTP genérico, relógio (<see cref="TimeProvider"/>), hash de senha e gerador de tokens seguros.
+    /// fábrica de conexões, cliente HTTP genérico, consulta de CEP, relógio (<see cref="TimeProvider"/>), hash de senha e gerador de tokens seguros.
     /// </summary>
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
         services.AddSingleton<IDbConnectionFactory, NpgsqlConnectionFactory>();
         services.AddHttpClient<IHttpRequestClient, HttpRequestClient>();
+        services.AddTransient<IZipCodeClient, ViaCepZipCodeClient>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
         services.AddSingleton<ISecureTokenGenerator, SecureTokenGenerator>();

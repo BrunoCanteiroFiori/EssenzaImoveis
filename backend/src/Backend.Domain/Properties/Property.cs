@@ -213,32 +213,34 @@ public sealed class Property : AggregateRoot
 
     private void SetTitle(string title)
     {
-        if (string.IsNullOrWhiteSpace(title))
+        var normalized = TextNormalizer.NormalizeLine(title);
+        if (normalized.Length == 0)
         {
             throw new DomainException("O campo Título é obrigatório.");
         }
 
-        if (title.Trim().Length > TitleMaxLength)
+        if (normalized.Length > TitleMaxLength)
         {
             throw new DomainException($"O campo Título deve ter no máximo {TitleMaxLength} caracteres.");
         }
 
-        Title = title.Trim();
+        Title = normalized;
     }
 
     private void SetDescription(string description)
     {
-        if (string.IsNullOrWhiteSpace(description))
+        var normalized = TextNormalizer.NormalizeMultiline(description);
+        if (normalized.Length == 0)
         {
             throw new DomainException("O campo Descrição é obrigatório.");
         }
 
-        if (description.Trim().Length > DescriptionMaxLength)
+        if (normalized.Length > DescriptionMaxLength)
         {
             throw new DomainException($"O campo Descrição deve ter no máximo {DescriptionMaxLength} caracteres.");
         }
 
-        Description = description.Trim();
+        Description = normalized;
     }
 
     private void SetType(PropertyType type)
