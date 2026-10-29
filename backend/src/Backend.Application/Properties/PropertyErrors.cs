@@ -8,7 +8,7 @@ public static class PropertyErrors
 
     public static Error Invalid(string message) => Error.Validation("Property.Invalid", message);
 
-    public static Error InvalidImage(string message) => Error.Validation("Property.InvalidImage", message);
+    public static Error InvalidMedia(string message) => Error.Validation("Property.InvalidMedia", message);
 
-    public static Error ImageNotFound(string fileName) => Error.NotFound("Property.ImageNotFound", $"A imagem '{fileName}' não foi encontrada no imóvel.");
+    public static Error MediaNotFound(string fileName) => Error.NotFound("Property.MediaNotFound", $"O arquivo '{fileName}' não foi encontrado no imóvel.");
 }

@@ -20,7 +20,7 @@ public sealed record PropertySummaryResponse(
     string City,
     string State,
     string? CoverImageUrl,
-    int ImageCount,
+    int MediaCount,
     bool IsSponsored,
     TemperatureResponse Temperature,
     DateTimeOffset CreatedAt);

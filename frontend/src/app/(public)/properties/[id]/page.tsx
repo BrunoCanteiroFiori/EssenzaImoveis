@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: PageProps<"/properties/[id]">
   const property = await getPropertyDetails(id);
   if (!property) notFound();
 
-  const cover = assetUrl(property.imageUrls[0]);
+  const cover = assetUrl(property.coverImageUrl);
   const title = `${property.title} - ${property.neighborhood}, ${property.city}`;
   const description = `${propertyTypeLabels[property.type]} para ${propertyPurposeLabels[property.purpose].toLowerCase()} por ${formatPrice(property.price)}. ${property.description.slice(0, 120)}`;
 

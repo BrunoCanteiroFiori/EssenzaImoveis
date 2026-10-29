@@ -18,6 +18,7 @@ RUN dotnet publish src/Backend.Api/Backend.Api.csproj --configuration Release --
 # O EF Core monta o host da API para ler o modelo: os valores abaixo só servem para isso (o bundle não guarda nenhum).
 RUN ConnectionStrings__Default="Host=localhost;Database=build;Username=build;Password=build" \
     Jwt__Secret="segredo-usado-apenas-para-montar-o-modelo-no-build" \
+    Storage__Provider=Local \
     dotnet ef migrations bundle --project src/Backend.Repository --startup-project src/Backend.Api \
     --configuration Release --output /app/efbundle
 
@@ -30,10 +31,9 @@ ENTRYPOINT ["./efbundle"]
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS api
 WORKDIR /app
 COPY --from=build /app/publish ./
-RUN mkdir -p /app/uploads && chown "$APP_UID" /app/uploads
 USER $APP_UID
+# Fotos e vídeos ficam no Google Drive (GoogleDrive__* no .env do servidor), não no container.
 ENV HOST=0.0.0.0 \
-    PORT=4000 \
-    Storage__RootPath=/app/uploads
+    PORT=4000
 EXPOSE 4000
 ENTRYPOINT ["dotnet", "Backend.Api.dll"]
