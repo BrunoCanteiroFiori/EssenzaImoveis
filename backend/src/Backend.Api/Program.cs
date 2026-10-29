@@ -44,7 +44,7 @@ if (storageProvider == "GoogleDrive")
         RequiredSetting("GoogleDrive:ClientId"),
         RequiredSetting("GoogleDrive:ClientSecret"),
         RequiredSetting("GoogleDrive:RefreshToken"),
-        builder.Configuration["GoogleDrive:RootFolderName"] ?? "SiteCorretora"));
+        builder.Configuration["GoogleDrive:RootFolderName"] ?? "EssenzaImoveis"));
 }
 else if (storageProvider == "Local")
 {

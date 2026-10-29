@@ -1,6 +1,7 @@
-# Stack de produção. Fica no servidor em DEPLOY_PATH junto com o Caddyfile e o .env (veja README.md).
-# As imagens são geradas pelo workflow .github/workflows/deploy.yml e publicadas no GitHub Container Registry.
-name: sitecorretora
+# Stack de produção. Fica no servidor em DEPLOY_PATH junto com o Caddyfile e o .env, que o workflow gera a cada deploy
+# (veja README.md). As imagens são geradas pelo workflow .github/workflows/deploy.yml e publicadas no GitHub Container
+# Registry.
+name: essenzaimoveis
 
 x-backend-environment: &backend-environment
   ConnectionStrings__Default: Host=postgres;Port=5432;Database=${POSTGRES_DB:?};Username=${POSTGRES_USER:?};Password=${POSTGRES_PASSWORD:?}
@@ -22,7 +23,7 @@ services:
       retries: 12
 
   migrations:
-    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-migrations:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/essenzaimoveis}-migrations:${IMAGE_TAG:-latest}
     env_file: .env
     environment:
       <<: *backend-environment
@@ -33,12 +34,9 @@ services:
         condition: service_healthy
 
   api:
-    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-api:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/essenzaimoveis}-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    # google-drive.env é gravado a cada deploy a partir dos secrets do GitHub e prevalece sobre o .env.
-    env_file:
-      - .env
-      - google-drive.env
+    env_file: .env
     environment:
       <<: *backend-environment
       # A API só é acessível pela rede interna do Docker, então o Caddy é o único proxy que chega até ela.
@@ -48,7 +46,7 @@ services:
         condition: service_completed_successfully
 
   web:
-    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/sitecorretora}-web:${IMAGE_TAG:-latest}
+    image: ${IMAGE_PREFIX:-ghcr.io/brunocanteirofiori/essenzaimoveis}-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       # Leituras feitas no servidor (Server Components) vão direto para a API pela rede interna.
