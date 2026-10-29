@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 : "${REGISTRY_USER:?REGISTRY_USER não informado}"
 
 if [ ! -f .env ]; then
-  echo "Arquivo .env não encontrado em $(pwd). Crie a partir do .env.example (veja deploy/README.md)." >&2
+  echo "Arquivo .env não encontrado em $(pwd). Ele é gerado pelo workflow a partir do environment production." >&2
   exit 1
 fi
 
@@ -19,6 +19,7 @@ docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
 trap 'docker logout ghcr.io > /dev/null' EXIT
 
 docker compose pull
+bash ./migrate-from-sitecorretora.sh
 docker compose up --detach --remove-orphans
 
 echo "Aguardando a API e o site responderem..."

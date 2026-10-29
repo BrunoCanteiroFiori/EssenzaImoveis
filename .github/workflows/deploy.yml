@@ -145,7 +145,7 @@ jobs:
       contents: read
       packages: read
     env:
-      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/sitecorretora' }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/essenzaimoveis' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -182,7 +182,54 @@ jobs:
       - name: Copiar arquivos de deploy
         run: |
           ssh deploy-server "mkdir -p '$DEPLOY_PATH'"
-          scp deploy/compose.yaml deploy/Caddyfile deploy/deploy.sh deploy/.env.example "deploy-server:$DEPLOY_PATH/"
+          scp deploy/compose.yaml deploy/Caddyfile deploy/deploy.sh deploy/migrate-from-sitecorretora.sh "deploy-server:$DEPLOY_PATH/"
+
+      # O .env do servidor é gerado a cada deploy a partir do environment production: secrets para o que é sensível,
+      # variables para o resto (com padrão quando faz sentido). Confere tudo antes de mexer no servidor. Os valores vão
+      # pela entrada padrão do SSH (não aparecem na linha de comando), o arquivo fica legível só pelo dono e o .env
+      # anterior é guardado em .env.anterior.
+      - name: Gerar o .env de produção
+        env:
+          POSTGRES_USER: ${{ vars.POSTGRES_USER || 'essenzaimoveis' }}
+          POSTGRES_DB: ${{ vars.POSTGRES_DB || 'essenzaimoveis' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          SITE_ADDRESS: ${{ vars.SITE_ADDRESS }}
+          API_ADDRESS: ${{ vars.API_ADDRESS }}
+          Cors__AllowedOrigins: ${{ vars.CORS__ALLOWEDORIGINS || vars.NEXT_PUBLIC_SITE_URL }}
+          Jwt__Issuer: ${{ vars.JWT__ISSUER || 'corretora-api' }}
+          Jwt__Audience: ${{ vars.JWT__AUDIENCE || 'corretora-web' }}
+          Jwt__Secret: ${{ secrets.JWT__SECRET }}
+          Jwt__AccessTokenMinutes: ${{ vars.JWT__ACCESSTOKENMINUTES || '15' }}
+          Auth__SecureCookies: ${{ vars.AUTH__SECURECOOKIES }}
+          SuperAdmin__Name: ${{ vars.SUPERADMIN__NAME || 'Super Admin' }}
+          SuperAdmin__Email: ${{ secrets.SUPERADMIN__EMAIL }}
+          SuperAdmin__Password: ${{ secrets.SUPERADMIN__PASSWORD }}
+          Storage__Provider: GoogleDrive
+          GoogleDrive__ClientId: ${{ secrets.GOOGLEDRIVE__CLIENTID }}
+          GoogleDrive__ClientSecret: ${{ secrets.GOOGLEDRIVE__CLIENTSECRET }}
+          GoogleDrive__RefreshToken: ${{ secrets.GOOGLEDRIVE__REFRESHTOKEN }}
+          GoogleDrive__RootFolderName: ${{ vars.GOOGLEDRIVE__ROOTFOLDERNAME || 'EssenzaImoveis' }}
+        run: |
+          names="POSTGRES_USER POSTGRES_DB POSTGRES_PASSWORD SITE_ADDRESS API_ADDRESS Cors__AllowedOrigins Jwt__Issuer
+            Jwt__Audience Jwt__Secret Jwt__AccessTokenMinutes Auth__SecureCookies SuperAdmin__Name SuperAdmin__Email
+            SuperAdmin__Password Storage__Provider GoogleDrive__ClientId GoogleDrive__ClientSecret GoogleDrive__RefreshToken
+            GoogleDrive__RootFolderName"
+          invalid=0
+          for name in $names; do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "::error::Defina ${name^^} no environment production (veja deploy/README.md)."
+              invalid=1
+            elif [[ "$value" == *"'"* || "$value" == *$'\n'* ]]; then
+              echo "::error::${name^^} não pode ter aspas simples nem quebra de linha."
+              invalid=1
+            fi
+          done
+          [ "$invalid" -eq 0 ] || exit 1
+          for name in $names; do
+            printf "%s='%s'\n" "$name" "${!name}"
+          done | ssh deploy-server \
+            "cd '$DEPLOY_PATH' && if [ -f .env ]; then cp -p .env .env.anterior; fi && umask 077 && cat > .env.novo && mv .env.novo .env"
 
       - name: Subir a nova versão
         env:
