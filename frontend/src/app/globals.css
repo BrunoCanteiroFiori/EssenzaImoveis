@@ -2,37 +2,47 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Modo claro: verde militar com letras em dourado champanhe, como a placa da marca. */
 :root {
-  --background: #f8fafc;
-  --surface: #ffffff;
-  --surface-muted: #f1f5f9;
-  --border: #e2e8f0;
-  --foreground: #0f172a;
-  --muted-foreground: #64748b;
-  --accent: #0f766e;
-  --accent-hover: #115e59;
-  --accent-foreground: #ffffff;
-  --accent-soft: #ccfbf1;
-  --danger: #dc2626;
-  --danger-soft: #fee2e2;
-  --ring: #14b8a6;
+  --background: #f7f3ea;
+  --surface: #fffcf5;
+  --surface-muted: #eee8da;
+  --border: #ddd4c0;
+  --foreground: #24261a;
+  --muted-foreground: #5c5848;
+  --accent: #3f432c;
+  --accent-hover: #2b2e1d;
+  --accent-foreground: #ecd29f;
+  --accent-soft: #e4e3d2;
+  --gold: #b07f45;
+  --gold-foreground: #2b1a08;
+  --gold-soft: #f2e5cf;
+  --danger: #b42318;
+  --danger-soft: #fbe4df;
+  --ring: #9a6b45;
+  --backdrop: rgb(36 38 26 / 0.55);
   color-scheme: light;
 }
 
+/* Modo escuro: marrom madeira com destaque em dourado champanhe. */
 .dark {
-  --background: #0b1120;
-  --surface: #111827;
-  --surface-muted: #1e293b;
-  --border: #243044;
-  --foreground: #e5e7eb;
-  --muted-foreground: #94a3b8;
-  --accent: #2dd4bf;
-  --accent-hover: #5eead4;
-  --accent-foreground: #042f2e;
-  --accent-soft: #134e4a;
+  --background: #170e08;
+  --surface: #22160d;
+  --surface-muted: #2e1f13;
+  --border: #43301f;
+  --foreground: #f3e6cf;
+  --muted-foreground: #bba188;
+  --accent: #e1b473;
+  --accent-hover: #ecd29f;
+  --accent-foreground: #22160d;
+  --accent-soft: #3b2916;
+  --gold: #e1b473;
+  --gold-foreground: #1d1209;
+  --gold-soft: #3b2916;
   --danger: #f87171;
-  --danger-soft: #450a0a;
-  --ring: #2dd4bf;
+  --danger-soft: #46190f;
+  --ring: #e1b473;
+  --backdrop: rgb(12 7 4 / 0.65);
   color-scheme: dark;
 }
 
@@ -47,6 +57,9 @@
   --color-accent-hover: var(--accent-hover);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-ring: var(--ring);
@@ -71,7 +84,7 @@
   }
 
   dialog::backdrop {
-    background: rgb(15 23 42 / 0.55);
+    background: var(--backdrop);
     backdrop-filter: blur(2px);
   }
 }
