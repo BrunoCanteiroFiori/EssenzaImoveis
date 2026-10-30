@@ -20,8 +20,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f7f3ea" },
-    { media: "(prefers-color-scheme: dark)", color: "#170e08" },
+    { media: "(prefers-color-scheme: light)", color: "#3f432c" },
+    { media: "(prefers-color-scheme: dark)", color: "#22160d" },
   ],
 };
 

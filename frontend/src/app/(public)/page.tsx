@@ -15,7 +15,7 @@ export default function HomePage() {
 
   return (
     <>
-      <section className="relative overflow-hidden border-b bg-gradient-to-b from-accent-soft/60 to-background">
+      <section className="relative overflow-hidden bg-background bg-gradient-to-b from-accent-soft to-background dark:from-accent-soft/60">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 pb-14 pt-12 sm:px-6 md:pt-20">
           <div className="flex max-w-2xl flex-col gap-4">
             <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium text-accent shadow-sm">

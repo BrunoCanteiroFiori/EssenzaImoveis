@@ -12,7 +12,7 @@ const links = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b bg-surface/85 backdrop-blur supports-[backdrop-filter]:bg-surface/70">
+    <header className="theme-brand sticky top-0 z-40 border-b bg-surface/95 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
         <Logo />
         <nav aria-label="Principal" className="hidden items-center gap-1 md:flex">
