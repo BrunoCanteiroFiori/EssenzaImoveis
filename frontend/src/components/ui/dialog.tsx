@@ -3,15 +3,21 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
 
+const sizes = {
+  md: "w-[min(32rem,calc(100vw-2rem))]",
+  xl: "w-[min(76rem,calc(100vw-2rem))]",
+};
+
 type DialogProps = {
   open: boolean;
   title: string;
+  size?: keyof typeof sizes;
   onClose: () => void;
   children: ReactNode;
 };
 
 /** Diálogo modal acessível baseado no elemento nativo <dialog> (foco preso, Esc fecha). */
-export function Dialog({ open, title, onClose, children }: DialogProps) {
+export function Dialog({ open, title, size = "md", onClose, children }: DialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -27,7 +33,7 @@ export function Dialog({ open, title, onClose, children }: DialogProps) {
       onClose={onClose}
       onCancel={onClose}
       aria-label={title}
-      className="m-auto w-[min(32rem,calc(100vw-2rem))] rounded-2xl border bg-surface p-0 text-foreground shadow-xl"
+      className={`m-auto ${sizes[size]} rounded-2xl border bg-surface p-0 text-foreground shadow-xl`}
     >
       {open && (
         <div className="flex flex-col gap-4 p-6">

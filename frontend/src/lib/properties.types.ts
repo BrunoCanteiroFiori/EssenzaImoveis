@@ -2,6 +2,7 @@ export type PropertyType = "House" | "Apartment" | "Land" | "Commercial" | "Rura
 export type PropertyPurpose = "Sale" | "Rent";
 export type PropertyStatus = "Available" | "Reserved" | "Sold" | "Rented" | "Inactive";
 export type PropertySortOrder = "Relevance" | "Newest" | "PriceAscending" | "PriceDescending" | "Hottest";
+export type PropertySortField = "Title" | "Type" | "Price" | "Status" | "Temperature";
 export type TemperatureLevel = "Cold" | "Warm" | "Hot" | "VeryHot";
 
 export type Temperature = { recentViews: number; level: TemperatureLevel };

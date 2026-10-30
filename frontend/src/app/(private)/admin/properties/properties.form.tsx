@@ -1,15 +1,16 @@
 "use client";
 
-import { useId, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import { useId, useRef, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { LoaderCircle, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { Field, Input, NumericInput, Select, Textarea } from "@/components/ui/field";
 import { Alert } from "@/components/ui/feedback";
 import { ApiError } from "@/lib/api-client";
-import { formatZipCode } from "@/lib/format";
+import { formatCountInput, formatDecimalInput, formatZipCode } from "@/lib/format";
 import { propertyPurposeLabels, propertyPurposes, propertyTypeLabels, propertyTypes } from "@/lib/labels";
-import type { Property, PropertyInput, PropertyPurpose, PropertyType } from "@/lib/properties.types";
+import type { PropertyInput } from "@/lib/properties.types";
 import { getZipCodeAddress } from "@/lib/zip-codes.api";
+import { toPropertyInput, type PropertyDraft } from "./properties.draft";
 
 const states = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA",
@@ -17,23 +18,14 @@ const states = [
 ];
 
 type PropertyFormProps = {
-  property?: Property;
+  draft: PropertyDraft;
+  onDraftChange: Dispatch<SetStateAction<PropertyDraft>>;
   readOnly?: boolean;
   submitLabel: string;
   onSubmit: (input: PropertyInput) => Promise<void>;
 };
 
-function optionalNumber(value: FormDataEntryValue | null) {
-  const text = String(value ?? "").trim();
-  return text === "" ? null : Number(text);
-}
-
-function optionalText(value: FormDataEntryValue | null) {
-  const text = String(value ?? "").trim();
-  return text === "" ? null : text;
-}
-
-type AddressFields = { zipCode: string; street: string; neighborhood: string; city: string; state: string };
+type AutofilledAddress = Pick<PropertyDraft, "street" | "neighborhood" | "city" | "state">;
 
 type ZipCodeLookup = { status: "idle" | "loading" | "found" | "failed"; message?: string };
 
@@ -48,29 +40,27 @@ function zipCodeLookupError(exception: unknown) {
 }
 
 /** Formulário de cadastro e edição dos dados do imóvel (fotos, status e destaque ficam em seções próprias). */
-export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit }: PropertyFormProps) {
+export function PropertyForm({ draft, onDraftChange, readOnly = false, submitLabel, onSubmit }: PropertyFormProps) {
   const idPrefix = useId();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [type, setType] = useState<PropertyType>(property?.type ?? "House");
-  const [address, setAddress] = useState<AddressFields>(() => ({
-    zipCode: formatZipCode(property?.address.zipCode ?? ""),
-    street: property?.address.street ?? "",
-    neighborhood: property?.address.neighborhood ?? "",
-    city: property?.address.city ?? "",
-    state: property?.address.state ?? "SP",
-  }));
   const [zipCodeLookup, setZipCodeLookup] = useState<ZipCodeLookup>({ status: "idle" });
   const zipCodeRequest = useRef<AbortController | null>(null);
-  const autofilledAddress = useRef<Omit<AddressFields, "zipCode"> | null>(null);
+  const autofilledAddress = useRef<AutofilledAddress | null>(null);
   const streetInput = useRef<HTMLInputElement>(null);
   const numberInput = useRef<HTMLInputElement>(null);
-  const isLand = type === "Land";
+  const isLand = draft.type === "Land";
 
-  function updateAddress(field: Exclude<keyof AddressFields, "zipCode">) {
-    return (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setAddress((current) => ({ ...current, [field]: event.target.value }));
+  /** Liga um controle ao rascunho, aplicando a máscara do campo. */
+  function bind(field: keyof PropertyDraft, mask: (value: string) => string = (value) => value) {
+    return {
+      value: draft[field],
+      onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+        const value = mask(event.target.value);
+        onDraftChange((current) => ({ ...current, [field]: value }));
+      },
+    };
   }
 
   /**
@@ -87,7 +77,7 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
       if (request.signal.aborted) return;
       const filled = { street: found.street ?? "", neighborhood: found.neighborhood ?? "", city: found.city, state: found.state };
       autofilledAddress.current = filled;
-      setAddress((current) => ({ ...current, ...filled }));
+      onDraftChange((current) => ({ ...current, ...filled }));
       setZipCodeLookup({
         status: "found",
         message: found.street
@@ -100,7 +90,7 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
       const stale = autofilledAddress.current;
       autofilledAddress.current = null;
       if (stale) {
-        setAddress((current) => ({
+        onDraftChange((current) => ({
           ...current,
           street: current.street === stale.street ? "" : current.street,
           neighborhood: current.neighborhood === stale.neighborhood ? "" : current.neighborhood,
@@ -114,8 +104,8 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
   function handleZipCodeChange(event: ChangeEvent<HTMLInputElement>) {
     const zipCode = formatZipCode(event.target.value);
     const digits = zipCodeDigits(zipCode);
-    const changed = digits !== zipCodeDigits(address.zipCode);
-    setAddress((current) => ({ ...current, zipCode }));
+    const changed = digits !== zipCodeDigits(draft.zipCode);
+    onDraftChange((current) => ({ ...current, zipCode }));
     if (!changed) return;
 
     if (digits.length === 8) {
@@ -128,35 +118,11 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const input: PropertyInput = {
-      title: String(data.get("title") ?? ""),
-      description: String(data.get("description") ?? ""),
-      type,
-      purpose: String(data.get("purpose")) as PropertyPurpose,
-      price: Number(data.get("price")),
-      condominiumFee: optionalNumber(data.get("condominiumFee")),
-      propertyTax: optionalNumber(data.get("propertyTax")),
-      area: Number(data.get("area")),
-      bedrooms: isLand ? 0 : Number(data.get("bedrooms") ?? 0),
-      bathrooms: isLand ? 0 : Number(data.get("bathrooms") ?? 0),
-      parkingSpaces: Number(data.get("parkingSpaces") ?? 0),
-      address: {
-        street: String(data.get("street") ?? ""),
-        number: optionalText(data.get("number")),
-        complement: optionalText(data.get("complement")),
-        neighborhood: String(data.get("neighborhood") ?? ""),
-        city: String(data.get("city") ?? ""),
-        state: String(data.get("state") ?? ""),
-        zipCode: String(data.get("zipCode") ?? ""),
-      },
-    };
-
     setSaving(true);
     setError(null);
     setSuccess(false);
     try {
-      await onSubmit(input);
+      await onSubmit(toPropertyInput(draft));
       setSuccess(true);
     } catch (exception) {
       setError(exception instanceof Error ? exception.message : "Não foi possível salvar.");
@@ -170,10 +136,10 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
       <fieldset disabled={readOnly || saving} className="flex flex-col gap-6">
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Título do anúncio" htmlFor={`${idPrefix}-title`} className="md:col-span-2">
-            <Input id={`${idPrefix}-title`} name="title" required maxLength={150} defaultValue={property?.title} />
+            <Input id={`${idPrefix}-title`} name="title" required maxLength={150} {...bind("title")} />
           </Field>
           <Field label="Tipo" htmlFor={`${idPrefix}-type`}>
-            <Select id={`${idPrefix}-type`} name="type" value={type} onChange={(event) => setType(event.target.value as PropertyType)}>
+            <Select id={`${idPrefix}-type`} name="type" {...bind("type")}>
               {propertyTypes.map((option) => (
                 <option key={option} value={option}>
                   {propertyTypeLabels[option]}
@@ -182,7 +148,7 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
             </Select>
           </Field>
           <Field label="Finalidade" htmlFor={`${idPrefix}-purpose`}>
-            <Select id={`${idPrefix}-purpose`} name="purpose" defaultValue={property?.purpose ?? "Sale"}>
+            <Select id={`${idPrefix}-purpose`} name="purpose" {...bind("purpose")}>
               {propertyPurposes.map((option) => (
                 <option key={option} value={option}>
                   {propertyPurposeLabels[option]}
@@ -191,34 +157,34 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
             </Select>
           </Field>
           <Field label="Descrição" htmlFor={`${idPrefix}-description`} className="md:col-span-2">
-            <Textarea id={`${idPrefix}-description`} name="description" required maxLength={5000} rows={6} defaultValue={property?.description} />
+            <Textarea id={`${idPrefix}-description`} name="description" required maxLength={5000} rows={6} {...bind("description")} />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <Field label="Valor (R$)" htmlFor={`${idPrefix}-price`} hint="Venda: valor total. Aluguel: valor mensal.">
-            <Input id={`${idPrefix}-price`} name="price" type="number" required min={0.01} step={0.01} defaultValue={property?.price} />
+          <Field label="Valor" htmlFor={`${idPrefix}-price`} hint="Venda: valor total. Aluguel: valor mensal.">
+            <NumericInput id={`${idPrefix}-price`} name="price" required prefix="R$" placeholder="0,00" {...bind("price", formatDecimalInput)} />
           </Field>
-          <Field label="Condomínio (R$/mês)" htmlFor={`${idPrefix}-condominiumFee`}>
-            <Input id={`${idPrefix}-condominiumFee`} name="condominiumFee" type="number" min={0} step={0.01} defaultValue={property?.condominiumFee ?? ""} />
+          <Field label="Condomínio (mês)" htmlFor={`${idPrefix}-condominiumFee`}>
+            <NumericInput id={`${idPrefix}-condominiumFee`} name="condominiumFee" prefix="R$" placeholder="0,00" {...bind("condominiumFee", formatDecimalInput)} />
           </Field>
-          <Field label="IPTU (R$/ano)" htmlFor={`${idPrefix}-propertyTax`}>
-            <Input id={`${idPrefix}-propertyTax`} name="propertyTax" type="number" min={0} step={0.01} defaultValue={property?.propertyTax ?? ""} />
+          <Field label="IPTU (ano)" htmlFor={`${idPrefix}-propertyTax`}>
+            <NumericInput id={`${idPrefix}-propertyTax`} name="propertyTax" prefix="R$" placeholder="0,00" {...bind("propertyTax", formatDecimalInput)} />
           </Field>
         </div>
 
         <div className="grid gap-4 sm:grid-cols-4">
-          <Field label="Área (m²)" htmlFor={`${idPrefix}-area`}>
-            <Input id={`${idPrefix}-area`} name="area" type="number" required min={0.01} step={0.01} defaultValue={property?.area} />
+          <Field label="Área" htmlFor={`${idPrefix}-area`}>
+            <NumericInput id={`${idPrefix}-area`} name="area" required suffix="m²" placeholder="0,00" {...bind("area", formatDecimalInput)} />
           </Field>
           <Field label="Quartos" htmlFor={`${idPrefix}-bedrooms`} hint={isLand ? "Não se aplica a terrenos." : undefined}>
-            <Input id={`${idPrefix}-bedrooms`} name="bedrooms" type="number" min={0} max={99} disabled={isLand} defaultValue={isLand ? 0 : (property?.bedrooms ?? 0)} />
+            <NumericInput id={`${idPrefix}-bedrooms`} name="bedrooms" disabled={isLand} {...bind("bedrooms", formatCountInput)} value={isLand ? "0" : draft.bedrooms} />
           </Field>
           <Field label="Banheiros" htmlFor={`${idPrefix}-bathrooms`}>
-            <Input id={`${idPrefix}-bathrooms`} name="bathrooms" type="number" min={0} max={99} disabled={isLand} defaultValue={isLand ? 0 : (property?.bathrooms ?? 0)} />
+            <NumericInput id={`${idPrefix}-bathrooms`} name="bathrooms" disabled={isLand} {...bind("bathrooms", formatCountInput)} value={isLand ? "0" : draft.bathrooms} />
           </Field>
-          <Field label="Vagas de garagem" htmlFor={`${idPrefix}-parkingSpaces`}>
-            <Input id={`${idPrefix}-parkingSpaces`} name="parkingSpaces" type="number" min={0} max={99} defaultValue={property?.parkingSpaces ?? 0} />
+          <Field label="Vagas" htmlFor={`${idPrefix}-parkingSpaces`}>
+            <NumericInput id={`${idPrefix}-parkingSpaces`} name="parkingSpaces" {...bind("parkingSpaces", formatCountInput)} />
           </Field>
         </div>
 
@@ -247,7 +213,7 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
                 placeholder="00000-000"
                 className="pr-9"
                 aria-busy={zipCodeLookup.status === "loading"}
-                value={address.zipCode}
+                value={draft.zipCode}
                 onChange={handleZipCodeChange}
               />
               {zipCodeLookup.status === "loading" && (
@@ -256,22 +222,22 @@ export function PropertyForm({ property, readOnly = false, submitLabel, onSubmit
             </div>
           </Field>
           <Field label="Logradouro" htmlFor={`${idPrefix}-street`} className="sm:col-span-4">
-            <Input ref={streetInput} id={`${idPrefix}-street`} name="street" required maxLength={200} value={address.street} onChange={updateAddress("street")} />
+            <Input ref={streetInput} id={`${idPrefix}-street`} name="street" required maxLength={200} {...bind("street")} />
           </Field>
           <Field label="Número" htmlFor={`${idPrefix}-number`} className="sm:col-span-2" hint="Não aparece no site.">
-            <Input ref={numberInput} id={`${idPrefix}-number`} name="number" maxLength={20} defaultValue={property?.address.number ?? ""} />
+            <Input ref={numberInput} id={`${idPrefix}-number`} name="number" maxLength={20} {...bind("number")} />
           </Field>
           <Field label="Complemento" htmlFor={`${idPrefix}-complement`} className="sm:col-span-4" hint="Não aparece no site.">
-            <Input id={`${idPrefix}-complement`} name="complement" maxLength={100} defaultValue={property?.address.complement ?? ""} />
+            <Input id={`${idPrefix}-complement`} name="complement" maxLength={100} {...bind("complement")} />
           </Field>
           <Field label="Bairro" htmlFor={`${idPrefix}-neighborhood`} className="sm:col-span-2">
-            <Input id={`${idPrefix}-neighborhood`} name="neighborhood" required maxLength={100} value={address.neighborhood} onChange={updateAddress("neighborhood")} />
+            <Input id={`${idPrefix}-neighborhood`} name="neighborhood" required maxLength={100} {...bind("neighborhood")} />
           </Field>
           <Field label="Cidade" htmlFor={`${idPrefix}-city`} className="sm:col-span-3">
-            <Input id={`${idPrefix}-city`} name="city" required maxLength={100} value={address.city} onChange={updateAddress("city")} />
+            <Input id={`${idPrefix}-city`} name="city" required maxLength={100} {...bind("city")} />
           </Field>
           <Field label="UF" htmlFor={`${idPrefix}-state`}>
-            <Select id={`${idPrefix}-state`} name="state" required value={address.state} onChange={updateAddress("state")}>
+            <Select id={`${idPrefix}-state`} name="state" required {...bind("state")}>
               {states.map((state) => (
                 <option key={state} value={state}>
                   {state}

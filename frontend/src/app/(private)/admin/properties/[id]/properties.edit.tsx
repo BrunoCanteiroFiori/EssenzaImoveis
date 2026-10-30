@@ -12,8 +12,8 @@ import { Alert, Spinner } from "@/components/ui/feedback";
 import { propertyStatusLabels } from "@/lib/labels";
 import { getProperty, updateProperty } from "@/lib/properties.api";
 import type { Property, PropertyInput } from "@/lib/properties.types";
-import { PropertyForm } from "../properties.form";
 import { statusTones } from "../properties.component";
+import { PropertyEditor } from "../properties.editor";
 import { PropertyMediaManager } from "./properties.media";
 import { PropertyStatusPanel } from "./properties.status";
 
@@ -74,17 +74,19 @@ function EditProperty({ id }: { id: string }) {
       />
       {!canWrite && <Alert className="mb-4">Você tem acesso somente de leitura a este imóvel.</Alert>}
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_22rem]">
-        <div className="flex min-w-0 flex-col gap-6">
+      <PropertyEditor
+        key={property.id}
+        property={property}
+        readOnly={!canWrite}
+        submitLabel="Salvar alterações"
+        onSubmit={handleUpdate}
+        media={
           <Panel title="Fotos e vídeos">
             <PropertyMediaManager property={property} readOnly={!canWrite} onChanged={handleChanged} />
           </Panel>
-          <Panel title="Dados do imóvel">
-            <PropertyForm key={property.id} property={property} readOnly={!canWrite} submitLabel="Salvar alterações" onSubmit={handleUpdate} />
-          </Panel>
-        </div>
-        <PropertyStatusPanel property={property} readOnly={!canWrite} onChanged={handleChanged} />
-      </div>
+        }
+        aside={<PropertyStatusPanel property={property} readOnly={!canWrite} onChanged={handleChanged} />}
+      />
     </>
   );
 }

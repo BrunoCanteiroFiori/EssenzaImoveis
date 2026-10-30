@@ -139,9 +139,11 @@ public static class PropertyMappings
         MaxArea: null,
         MinPrice: null,
         MaxPrice: null,
-        request.Sort,
+        PropertySortOrder.Newest,
         request.Page,
-        request.PageSize);
+        request.PageSize,
+        request.SortField,
+        request.SortDescending);
 
     private static List<PropertyMediaResponse> ToMediaResponses(this Property property) =>
         [.. property.Media.Select(fileName => new PropertyMediaResponse(

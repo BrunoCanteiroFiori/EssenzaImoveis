@@ -1,19 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ExternalLink, ImageOff, Pencil, Star, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowDown, ArrowUp, ChevronsUpDown, ExternalLink, ImageOff, Pencil, Star, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/admin/auth-provider";
 import { TemperatureBadge } from "@/components/properties/temperature-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Alert, EmptyState } from "@/components/ui/feedback";
+import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { propertyPurposeLabels, propertyStatusLabels, propertyTypeLabels } from "@/lib/labels";
 import { deleteProperty } from "@/lib/properties.api";
-import type { PropertyManagementSummary, PropertyStatus } from "@/lib/properties.types";
+import type { PropertyManagementSummary, PropertySortField, PropertyStatus } from "@/lib/properties.types";
 import { assetUrl } from "@/lib/site-config";
 
 export const statusTones: Record<PropertyStatus, "success" | "warning" | "info" | "neutral" | "accent"> = {
@@ -24,12 +26,55 @@ export const statusTones: Record<PropertyStatus, "success" | "warning" | "info" 
   Inactive: "neutral",
 };
 
+const sortableColumns: { field: PropertySortField; label: string }[] = [
+  { field: "Title", label: "Imóvel" },
+  { field: "Type", label: "Tipo" },
+  { field: "Price", label: "Valor" },
+  { field: "Status", label: "Status" },
+  { field: "Temperature", label: "Temperatura" },
+];
+
+const sortIcons = { ascending: ArrowUp, descending: ArrowDown, none: ChevronsUpDown };
+
+type SortDirection = keyof typeof sortIcons;
+
+function SortableHeader({ label, direction, onSort }: { label: string; direction: SortDirection; onSort: () => void }) {
+  const Icon = sortIcons[direction];
+  return (
+    <th aria-sort={direction} className="px-4 py-3 font-medium">
+      <button
+        type="button"
+        onClick={onSort}
+        className={cn("inline-flex items-center gap-1 uppercase tracking-wide hover:text-foreground", direction !== "none" && "text-foreground")}
+      >
+        {label}
+        <Icon className="size-3.5" aria-hidden />
+      </button>
+    </th>
+  );
+}
+
+type PropertiesComponentProps = {
+  properties: PropertyManagementSummary[];
+  sortField?: PropertySortField;
+  sortDescending?: boolean;
+  onSort: (field: PropertySortField) => void;
+  onChanged: () => void;
+};
+
 /** Tabela de imóveis da gestão, com ações conforme as permissões do usuário. */
-export function PropertiesComponent({ properties, onChanged }: { properties: PropertyManagementSummary[]; onChanged: () => void }) {
+export function PropertiesComponent({ properties, sortField, sortDescending, onSort, onChanged }: PropertiesComponentProps) {
   const { hasPermission, handleError } = useAuth();
+  const router = useRouter();
   const [deleting, setDeleting] = useState<PropertyManagementSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function openProperty(event: MouseEvent<HTMLTableRowElement>, id: string) {
+    // Duplo clique nas ações da linha mantém só a ação do próprio controle.
+    if ((event.target as Element).closest("a, button")) return;
+    router.push(`/admin/properties/${id}`);
+  }
 
   async function confirmDelete() {
     if (!deleting) return;
@@ -55,11 +100,14 @@ export function PropertiesComponent({ properties, onChanged }: { properties: Pro
         <table className="w-full min-w-[56rem] text-sm">
           <thead className="border-b bg-surface-muted text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3 font-medium">Imóvel</th>
-              <th className="px-4 py-3 font-medium">Tipo</th>
-              <th className="px-4 py-3 font-medium">Valor</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Temperatura</th>
+              {sortableColumns.map(({ field, label }) => (
+                <SortableHeader
+                  key={field}
+                  label={label}
+                  direction={sortField !== field ? "none" : sortDescending ? "descending" : "ascending"}
+                  onSort={() => onSort(field)}
+                />
+              ))}
               <th className="px-4 py-3 text-right font-medium">Ações</th>
             </tr>
           </thead>
@@ -67,7 +115,12 @@ export function PropertiesComponent({ properties, onChanged }: { properties: Pro
             {properties.map((property) => {
               const cover = assetUrl(property.coverImageUrl);
               return (
-                <tr key={property.id} className="hover:bg-surface-muted/50">
+                <tr
+                  key={property.id}
+                  onDoubleClick={(event) => openProperty(event, property.id)}
+                  title="Clique duas vezes para abrir"
+                  className="hover:bg-surface-muted/50"
+                >
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="relative size-14 shrink-0 overflow-hidden rounded-lg bg-surface-muted">

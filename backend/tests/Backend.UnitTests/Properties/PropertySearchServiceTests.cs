@@ -80,6 +80,38 @@ public sealed class PropertySearchServiceTests
     }
 
     [Fact]
+    public async Task ListAsync_WithSortField_ShouldForwardSortToRepository()
+    {
+        _propertyRepository
+            .SearchAsync(Arg.Any<PropertySearchFilter>(), Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(new PagedList<Property>([], 0, 1, 20));
+
+        await _propertySearchService.ListAsync(new ListPropertiesRequest(SortField: PropertySortField.Title, SortDescending: true));
+
+        await _propertyRepository.Received(1).SearchAsync(
+            Arg.Is<PropertySearchFilter>(filter => filter.SortField == PropertySortField.Title && filter.SortDescending),
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ListAsync_WithoutSortField_ShouldSortByNewest()
+    {
+        _propertyRepository
+            .SearchAsync(Arg.Any<PropertySearchFilter>(), Arg.Any<DateTimeOffset>(), Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(new PagedList<Property>([], 0, 1, 20));
+
+        await _propertySearchService.ListAsync(new ListPropertiesRequest());
+
+        await _propertyRepository.Received(1).SearchAsync(
+            Arg.Is<PropertySearchFilter>(filter => filter.SortField == null && filter.Sort == PropertySortOrder.Newest),
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task GetDetailsAsync_WhenPropertyIsNotAvailable_ShouldReturnNotFound()
     {
         var property = TestData.Property();
