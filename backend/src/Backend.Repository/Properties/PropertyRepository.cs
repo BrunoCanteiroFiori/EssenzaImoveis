@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using Backend.Domain.Common;
 using Backend.Domain.Properties;
 using Backend.Domain.PropertyViews;
@@ -8,6 +9,21 @@ namespace Backend.Repository.Properties;
 
 public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<Property>(dbContext), IPropertyRepository
 {
+    // Os enums são gravados em inglês; estas ordens seguem os rótulos em pt-BR exibidos na gestão (labels.ts do frontend).
+    private static readonly Expression<Func<Property, int>> _typeLabelOrder = property =>
+        property.Type == PropertyType.Apartment ? 0
+        : property.Type == PropertyType.House ? 1
+        : property.Type == PropertyType.Commercial ? 2
+        : property.Type == PropertyType.Rural ? 3
+        : 4;
+
+    private static readonly Expression<Func<Property, int>> _statusLabelOrder = property =>
+        property.Status == PropertyStatus.Rented ? 0
+        : property.Status == PropertyStatus.Available ? 1
+        : property.Status == PropertyStatus.Inactive ? 2
+        : property.Status == PropertyStatus.Reserved ? 3
+        : 4;
+
     private readonly DbSet<PropertyView> _views = dbContext.Set<PropertyView>();
 
     public async Task<PagedList<Property>> SearchAsync(
@@ -19,7 +35,7 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
         var query = ApplyFilter(Entities.AsNoTracking(), filter);
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await Sort(query, filter.Sort, now.ToUniversalTime(), viewsSince.ToUniversalTime())
+        var items = await Sort(query, filter, now.ToUniversalTime(), viewsSince.ToUniversalTime())
             .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
             .ToListAsync(cancellationToken);
@@ -147,7 +163,25 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
         return query;
     }
 
-    private IQueryable<Property> Sort(IQueryable<Property> query, PropertySortOrder sort, DateTimeOffset now, DateTimeOffset viewsSince) =>
+    private static IOrderedQueryable<Property> OrderBy<TKey>(IQueryable<Property> query, Expression<Func<Property, TKey>> key, bool descending) =>
+        descending ? query.OrderByDescending(key) : query.OrderBy(key);
+
+    private IQueryable<Property> Sort(IQueryable<Property> query, PropertySearchFilter filter, DateTimeOffset now, DateTimeOffset viewsSince) =>
+        filter.SortField is { } field
+            ? SortByField(query, field, filter.SortDescending, viewsSince).ThenByDescending(property => property.CreatedAt)
+            : SortByOrder(query, filter.Sort, now, viewsSince);
+
+    private IOrderedQueryable<Property> SortByField(IQueryable<Property> query, PropertySortField field, bool descending, DateTimeOffset viewsSince) =>
+        field switch
+        {
+            PropertySortField.Title => OrderBy(query, property => property.Title, descending),
+            PropertySortField.Type => OrderBy(query, _typeLabelOrder, descending),
+            PropertySortField.Price => OrderBy(query, property => property.Price, descending),
+            PropertySortField.Status => OrderBy(query, _statusLabelOrder, descending),
+            _ => OrderBy(query, property => _views.Count(view => view.PropertyId == property.Id && view.ViewedAt >= viewsSince), descending),
+        };
+
+    private IQueryable<Property> SortByOrder(IQueryable<Property> query, PropertySortOrder sort, DateTimeOffset now, DateTimeOffset viewsSince) =>
         sort switch
         {
             PropertySortOrder.Newest => query.OrderByDescending(property => property.CreatedAt),

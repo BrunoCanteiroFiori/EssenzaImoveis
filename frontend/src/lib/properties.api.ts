@@ -9,7 +9,7 @@ import type {
   PropertyLocation,
   PropertyPurpose,
   PropertySearch,
-  PropertySortOrder,
+  PropertySortField,
   PropertyStatus,
   PropertySummary,
   PropertyType,
@@ -43,7 +43,8 @@ export type PropertyListFilter = {
   status?: PropertyStatus;
   type?: PropertyType;
   purpose?: PropertyPurpose;
-  sort?: PropertySortOrder;
+  sortField?: PropertySortField;
+  sortDescending?: boolean;
   page?: number;
 };
 
