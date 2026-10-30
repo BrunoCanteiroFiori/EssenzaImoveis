@@ -1,22 +1,36 @@
 "use client";
 
+import { useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { RequirePermission } from "@/components/admin/admin-shell";
 import { useAuth } from "@/components/admin/auth-provider";
-import { PageHeader, Panel } from "@/components/admin/page-header";
+import { PageHeader } from "@/components/admin/page-header";
 import { createProperty } from "@/lib/properties.api";
 import type { PropertyInput } from "@/lib/properties.types";
-import { PropertyForm } from "../properties.form";
+import { PropertyEditor } from "../properties.editor";
 
 export function NewPropertyPage() {
   const router = useRouter();
   const { handleError } = useAuth();
+  const [editorKey, setEditorKey] = useState(0);
+  const created = useRef(false);
+
+  // O Next mantém a rota escondida ao navegar (Activity): depois de cadastrar, o próximo imóvel começa em branco.
+  useLayoutEffect(
+    () => () => {
+      if (!created.current) return;
+      created.current = false;
+      setEditorKey((current) => current + 1);
+    },
+    [],
+  );
 
   async function handleSubmit(input: PropertyInput) {
     try {
       const property = await createProperty(input);
+      created.current = true;
       router.push(`/admin/properties/${property.id}`);
     } catch (exception) {
       throw new Error(handleError(exception));
@@ -29,9 +43,7 @@ export function NewPropertyPage() {
         <ArrowLeft className="size-4" aria-hidden /> Imóveis
       </Link>
       <PageHeader title="Novo imóvel" description="Depois de salvar, você poderá adicionar as fotos e destacar o anúncio." />
-      <Panel>
-        <PropertyForm submitLabel="Salvar e adicionar fotos" onSubmit={handleSubmit} />
-      </Panel>
+      <PropertyEditor key={editorKey} submitLabel="Salvar e adicionar fotos" onSubmit={handleSubmit} />
     </RequirePermission>
   );
 }

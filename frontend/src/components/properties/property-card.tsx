@@ -10,17 +10,26 @@ import { PropertySpecs } from "./property-specs";
 import { SponsoredBadge } from "./sponsored-badge";
 import { TemperatureBadge } from "./temperature-badge";
 
-export function PropertyCard({ property, priority = false }: { property: PropertySummary; priority?: boolean }) {
+type PropertyCardProps = {
+  property: PropertySummary;
+  priority?: boolean;
+  /** Prévia da área administrativa: mesmo visual, com os links desativados. */
+  preview?: boolean;
+};
+
+export function PropertyCard({ property, priority = false, preview = false }: PropertyCardProps) {
   const cover = assetUrl(property.coverImageUrl);
+  const detailsLink = { href: `/properties/${property.id}`, prefetch: preview ? false : undefined };
 
   return (
     <article
+      inert={preview}
       className={cn(
         "group flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm transition-shadow hover:shadow-md",
         property.isSponsored && "ring-2 ring-gold/70",
       )}
     >
-      <Link href={`/properties/${property.id}`} className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
+      <Link {...detailsLink} className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
         {cover ? (
           <Image
             src={cover}
@@ -51,7 +60,7 @@ export function PropertyCard({ property, priority = false }: { property: Propert
           {property.purpose === "Rent" && <span className="text-sm font-normal text-muted-foreground">/mês</span>}
         </p>
         <h3 className="line-clamp-2 font-medium leading-snug">
-          <Link href={`/properties/${property.id}`} className="hover:text-accent">
+          <Link {...detailsLink} className="hover:text-accent">
             {property.title}
           </Link>
         </h3>

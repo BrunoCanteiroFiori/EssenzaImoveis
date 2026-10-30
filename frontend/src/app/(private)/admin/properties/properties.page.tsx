@@ -18,13 +18,16 @@ import {
   propertyStatuses,
   propertyTypeLabels,
   propertyTypes,
-  sortOrderLabels,
 } from "@/lib/labels";
 import { listProperties, type PropertyListFilter } from "@/lib/properties.api";
-import type { PropertyPurpose, PropertySortOrder, PropertyStatus, PropertyType } from "@/lib/properties.types";
+import type { PropertyPurpose, PropertySortField, PropertyStatus, PropertyType } from "@/lib/properties.types";
 import { PropertiesComponent } from "./properties.component";
 
-const adminSortOrders: PropertySortOrder[] = ["Newest", "Hottest", "PriceAscending", "PriceDescending"];
+/** Cada clique na coluna alterna entre crescente, decrescente e a ordem padrão (mais recentes). */
+function nextSort({ sortField, sortDescending }: PropertyListFilter, field: PropertySortField) {
+  if (sortField !== field) return { sortField: field, sortDescending: false };
+  return sortDescending ? { sortField: undefined, sortDescending: undefined } : { sortField: field, sortDescending: true };
+}
 
 export function PropertiesPage() {
   return (
@@ -36,21 +39,25 @@ export function PropertiesPage() {
 
 function PropertiesList() {
   const { hasPermission } = useAuth();
-  const [filter, setFilter] = useState<PropertyListFilter>({ sort: "Newest", page: 1 });
+  const [filter, setFilter] = useState<PropertyListFilter>({ page: 1 });
   const load = useCallback(() => listProperties(filter), [filter]);
   const { data, error, loading, reload } = useApiData(load);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    setFilter({
+    setFilter((current) => ({
+      ...current,
       search: String(form.get("search") ?? "").trim() || undefined,
       status: (String(form.get("status") ?? "") || undefined) as PropertyStatus | undefined,
       type: (String(form.get("type") ?? "") || undefined) as PropertyType | undefined,
       purpose: (String(form.get("purpose") ?? "") || undefined) as PropertyPurpose | undefined,
-      sort: String(form.get("sort") ?? "Newest") as PropertySortOrder,
       page: 1,
-    });
+    }));
+  }
+
+  function handleSort(field: PropertySortField) {
+    setFilter((current) => ({ ...current, ...nextSort(current, field), page: 1 }));
   }
 
   return (
@@ -67,7 +74,7 @@ function PropertiesList() {
         }
       />
 
-      <form onSubmit={handleSubmit} className="mb-4 grid gap-3 rounded-2xl border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[1fr_repeat(4,10rem)_auto]">
+      <form onSubmit={handleSubmit} className="mb-4 grid gap-3 rounded-2xl border bg-surface p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-[1fr_repeat(3,10rem)_auto]">
         <Input name="search" placeholder="Título, bairro ou cidade" aria-label="Buscar" defaultValue={filter.search} />
         <Select name="status" aria-label="Status" defaultValue={filter.status ?? ""}>
           <option value="">Todos os status</option>
@@ -93,13 +100,6 @@ function PropertiesList() {
             </option>
           ))}
         </Select>
-        <Select name="sort" aria-label="Ordenação" defaultValue={filter.sort}>
-          {adminSortOrders.map((sort) => (
-            <option key={sort} value={sort}>
-              {sortOrderLabels[sort]}
-            </option>
-          ))}
-        </Select>
         <Button type="submit" variant="secondary">
           <Search className="size-4" aria-hidden /> Filtrar
         </Button>
@@ -112,7 +112,13 @@ function PropertiesList() {
         data && (
           <>
             <p className="mb-2 text-sm text-muted-foreground">{data.totalCount} imóvel(is)</p>
-            <PropertiesComponent properties={data.items} onChanged={reload} />
+            <PropertiesComponent
+              properties={data.items}
+              sortField={filter.sortField}
+              sortDescending={filter.sortDescending}
+              onSort={handleSort}
+              onChanged={reload}
+            />
             <Pagination page={data.page} totalPages={data.totalPages} onPageChange={(page) => setFilter((current) => ({ ...current, page }))} />
           </>
         )

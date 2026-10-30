@@ -8,6 +8,19 @@ export function Input({ className, ...props }: ComponentProps<"input">) {
   return <input className={cn(controlClass, "h-10", className)} {...props} />;
 }
 
+const unitClass = "pointer-events-none absolute inset-y-0 flex items-center text-sm text-muted-foreground";
+
+/** Campo numérico com máscara e a unidade (R$, m²) dentro do controle. */
+export function NumericInput({ prefix, suffix, className, ...props }: ComponentProps<"input"> & { suffix?: string }) {
+  return (
+    <div className="relative">
+      {prefix && <span className={cn(unitClass, "left-3")}>{prefix}</span>}
+      <Input inputMode="numeric" autoComplete="off" className={cn(prefix && "pl-9", suffix && "pr-9", className)} {...props} />
+      {suffix && <span className={cn(unitClass, "right-3")}>{suffix}</span>}
+    </div>
+  );
+}
+
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={cn(controlClass, "min-h-28 py-2", className)} {...props} />;
 }
