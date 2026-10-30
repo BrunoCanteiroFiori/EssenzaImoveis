@@ -21,6 +21,25 @@ export function formatZipCode(value: string) {
   return digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
 }
 
+/** Máscara de valor com centavos (1.234,56): os dígitos entram pela direita, como em caixa eletrônico. */
+export function formatDecimalInput(value: string) {
+  const digits = value.replace(/\D/g, "").replace(/^0+/, "").slice(0, 11);
+  if (digits === "") return "";
+  const padded = digits.padStart(3, "0");
+  return `${padded.slice(0, -2).replace(/\B(?=(\d{3})+$)/g, ".")},${padded.slice(-2)}`;
+}
+
+/** Número digitado na máscara de formatDecimalInput (null se vazia). */
+export function parseDecimalInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits === "" ? null : Number(digits) / 100;
+}
+
+/** Máscara de contagem (quartos, banheiros, vagas): até dois dígitos, sem zero à esquerda. */
+export function formatCountInput(value: string) {
+  return value.replace(/\D/g, "").replace(/^0+(?=\d)/, "").slice(0, 2);
+}
+
 export function pluralize(count: number, singular: string, plural: string) {
   return `${count} ${count === 1 ? singular : plural}`;
 }
