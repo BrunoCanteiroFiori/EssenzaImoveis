@@ -8,13 +8,22 @@ import { assetUrl, siteConfig } from "@/lib/site-config";
 import { whatsappLink } from "@/lib/whatsapp";
 import { ContactForm } from "./contact-form";
 import { MediaCarousel } from "./media-carousel";
+import { NeighborhoodMap } from "./neighborhood-map";
+import { SaveButton } from "./save-button";
+
+type PropertyDetailsViewProps = {
+  property: PropertyDetails;
+  preview?: boolean;
+  /** Na prévia, o mapa só aparece depois de o bairro e a cidade serem preenchidos. */
+  showMap?: boolean;
+};
 
 /**
  * Conteúdo da página pública do imóvel, compartilhado com a prévia da área administrativa.
  * O layout segue a largura do container (não a da tela) para funcionar também dentro da prévia.
- * Na prévia, os contatos ficam desativados.
+ * Na prévia, os contatos ficam desativados e não há como salvar o imóvel.
  */
-export function PropertyDetailsView({ property, preview = false }: { property: PropertyDetails; preview?: boolean }) {
+export function PropertyDetailsView({ property, preview = false, showMap = true }: PropertyDetailsViewProps) {
   const media = property.media.map((item) => ({ type: item.type, url: assetUrl(item.url) ?? "" }));
   const pageUrl = `${siteConfig.url}/properties/${property.id}`;
   const whatsapp = whatsappLink(`Olá! Tenho interesse no imóvel "${property.title}" (${formatPrice(property.price)}). ${pageUrl}`);
@@ -37,6 +46,7 @@ export function PropertyDetailsView({ property, preview = false }: { property: P
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="accent">{propertyTypeLabels[property.type]}</Badge>
               <Badge>{propertyPurposeLabels[property.purpose]}</Badge>
+              {!preview && <SaveButton propertyId={property.id} labeled className="ml-auto" />}
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-balance">{property.title}</h1>
             <p className="flex items-center gap-1.5 text-muted-foreground">
@@ -64,6 +74,8 @@ export function PropertyDetailsView({ property, preview = false }: { property: P
             <h2 className="text-xl font-semibold">Descrição</h2>
             <p className="whitespace-pre-line leading-relaxed text-muted-foreground">{property.description}</p>
           </section>
+
+          {showMap && <NeighborhoodMap neighborhood={property.neighborhood} city={property.city} state={property.state} />}
         </div>
 
         <aside inert={preview} className="flex flex-col gap-4 @4xl:sticky @4xl:top-20 @4xl:h-fit">

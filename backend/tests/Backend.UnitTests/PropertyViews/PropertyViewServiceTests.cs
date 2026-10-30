@@ -33,24 +33,12 @@ public sealed class PropertyViewServiceTests
         var result = await _propertyViewService.RegisterAsync(property.Id, new RegisterPropertyViewRequest(VisitorId));
 
         Assert.True(result.IsSuccess);
-        await _propertyViewRepository.Received(1).AddIfNotExistsAsync(
+        await _propertyViewRepository.Received(1).AddOrRefreshAsync(
             Arg.Is<PropertyView>(view =>
                 view.PropertyId == property.Id
                 && view.VisitorHash == VisitorId.ToSha256Hex()
                 && view.ViewedOn == DateOnly.FromDateTime(TestData.Now.UtcDateTime)),
             Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task RegisterAsync_WhenVisitorAlreadyViewedToday_ShouldStillSucceed()
-    {
-        var property = TestData.Property();
-        _propertyRepository.GetByIdAsync(property.Id, Arg.Any<CancellationToken>()).Returns(property);
-        _propertyViewRepository.AddIfNotExistsAsync(Arg.Any<PropertyView>(), Arg.Any<CancellationToken>()).Returns(false);
-
-        var result = await _propertyViewService.RegisterAsync(property.Id, new RegisterPropertyViewRequest(VisitorId));
-
-        Assert.True(result.IsSuccess);
     }
 
     [Fact]
@@ -64,6 +52,6 @@ public sealed class PropertyViewServiceTests
 
         Assert.True(result.IsFailure);
         Assert.Equal(ErrorType.NotFound, result.Error.Type);
-        await _propertyViewRepository.DidNotReceive().AddIfNotExistsAsync(Arg.Any<PropertyView>(), Arg.Any<CancellationToken>());
+        await _propertyViewRepository.DidNotReceive().AddOrRefreshAsync(Arg.Any<PropertyView>(), Arg.Any<CancellationToken>());
     }
 }

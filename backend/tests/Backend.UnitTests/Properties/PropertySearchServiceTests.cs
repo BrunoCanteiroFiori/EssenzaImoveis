@@ -6,6 +6,7 @@ using Backend.Application.Properties.Dtos;
 using Backend.Domain.Common;
 using Backend.Domain.Properties;
 using Backend.Domain.PropertyViews;
+using Backend.Infrastructure.Conversions;
 using Backend.UnitTests.Common;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
@@ -14,6 +15,8 @@ namespace Backend.UnitTests.Properties;
 
 public sealed class PropertySearchServiceTests
 {
+    private const string VisitorId = "visitante-123";
+
     private readonly IPropertyRepository _propertyRepository = Substitute.For<IPropertyRepository>();
     private readonly IPropertyViewRepository _propertyViewRepository = Substitute.For<IPropertyViewRepository>();
     private readonly FakeTimeProvider _timeProvider = new(TestData.Now);
@@ -187,6 +190,72 @@ public sealed class PropertySearchServiceTests
             Arg.Is<PropertySearchFilter>(filter => filter.Status != PropertyStatus.Available || filter.PageSize != PropertySearchService.FeaturedLimit),
             Arg.Any<DateTimeOffset>(),
             Arg.Any<DateTimeOffset>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task GetRecentlyViewedAsync_WithVisitor_ShouldSearchByHashWithoutInternalData()
+    {
+        var property = TestData.Property();
+        _propertyRepository
+            .GetRecentlyViewedAsync(VisitorId.ToSha256Hex(), PropertySearchService.RecentlyViewedLimit, Arg.Any<CancellationToken>())
+            .Returns([property]);
+
+        var properties = await _propertySearchService.GetRecentlyViewedAsync(VisitorId);
+
+        AssertHasNoInternalData(Assert.Single(properties));
+    }
+
+    [Fact]
+    public async Task GetSuggestionsAsync_WhenPropertyIsNotAvailable_ShouldReturnNotFound()
+    {
+        var property = TestData.Property();
+        property.ChangeStatus(PropertyStatus.Sold, TestData.Now);
+        _propertyRepository.GetByIdAsync(property.Id, Arg.Any<CancellationToken>()).Returns(property);
+
+        var result = await _propertySearchService.GetSuggestionsAsync(property.Id, VisitorId);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(ErrorType.NotFound, result.Error.Type);
+    }
+
+    [Fact]
+    public async Task GetSuggestionsAsync_WithoutVisitor_ShouldUseOnlyTheCurrentProperty()
+    {
+        var property = TestData.Property();
+        var suggestion = TestData.Property(title: "Sugerido");
+        _propertyRepository.GetByIdAsync(property.Id, Arg.Any<CancellationToken>()).Returns(property);
+        _propertyRepository
+            .GetSuggestionCandidatesAsync(
+                Arg.Is<IReadOnlyCollection<PropertyPurpose>>(purposes => purposes.SequenceEqual(new[] { PropertyPurpose.Sale })),
+                Arg.Is<IReadOnlyCollection<Guid>>(excludedIds => excludedIds.SequenceEqual(new[] { property.Id })),
+                PropertySearchService.SuggestionCandidateLimit,
+                Arg.Any<CancellationToken>())
+            .Returns([suggestion]);
+
+        var result = await _propertySearchService.GetSuggestionsAsync(property.Id, visitorId: null);
+
+        AssertHasNoInternalData(Assert.Single(result.Value));
+        Assert.Equal(suggestion.Id, result.Value[0].Id);
+        await _propertyRepository.DidNotReceiveWithAnyArgs().GetRecentlyViewedAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task GetSuggestionsAsync_WithHistory_ShouldExcludeViewedAndCoverEveryViewedPurpose()
+    {
+        var property = TestData.Property(purpose: PropertyPurpose.Sale);
+        var viewed = TestData.Property(purpose: PropertyPurpose.Rent);
+        _propertyRepository.GetByIdAsync(property.Id, Arg.Any<CancellationToken>()).Returns(property);
+        _propertyRepository
+            .GetRecentlyViewedAsync(VisitorId.ToSha256Hex(), PropertySearchService.SuggestionViewedLimit, Arg.Any<CancellationToken>())
+            .Returns([property, viewed]);
+
+        await _propertySearchService.GetSuggestionsAsync(property.Id, VisitorId);
+
+        await _propertyRepository.Received(1).GetSuggestionCandidatesAsync(
+            Arg.Is<IReadOnlyCollection<PropertyPurpose>>(purposes => purposes.Count == 2),
+            Arg.Is<IReadOnlyCollection<Guid>>(excludedIds => excludedIds.Count == 2 && excludedIds.Contains(property.Id) && excludedIds.Contains(viewed.Id)),
+            PropertySearchService.SuggestionCandidateLimit,
             Arg.Any<CancellationToken>());
     }
 

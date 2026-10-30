@@ -39,6 +39,20 @@ export const getPropertyLocations = () => apiFetch<PropertyLocation[]>("/propert
 export const registerPropertyView = (id: string, visitorId: string) =>
   apiFetch<void>(`/properties/${id}/views`, { method: "POST", body: { visitorId } });
 
+export const getRecentlyViewedProperties = (visitorId: string) =>
+  apiFetch<PropertySummary[]>("/properties/recently-viewed", { visitorId });
+
+export const getPropertySuggestions = (id: string, visitorId: string, signal: AbortSignal) =>
+  apiFetch<PropertySummary[]>(`/properties/${id}/suggestions`, { visitorId, signal });
+
+export const getSavedProperties = (visitorId: string) => apiFetch<PropertySummary[]>("/saved-properties", { visitorId });
+
+export const saveProperty = (id: string, visitorId: string) =>
+  apiFetch<void>(`/saved-properties/${id}`, { method: "PUT", visitorId });
+
+export const removeSavedProperty = (id: string, visitorId: string) =>
+  apiFetch<void>(`/saved-properties/${id}`, { method: "DELETE", visitorId });
+
 export type PropertyListFilter = {
   search?: string;
   status?: PropertyStatus;

@@ -3,7 +3,6 @@ using Backend.Application.Properties;
 using Backend.Application.PropertyViews.Dtos;
 using Backend.Domain.Properties;
 using Backend.Domain.PropertyViews;
-using Backend.Infrastructure.Conversions;
 
 namespace Backend.Application.PropertyViews;
 
@@ -20,8 +19,8 @@ public sealed class PropertyViewService(
             return PropertyErrors.NotFound(propertyId);
         }
 
-        var view = PropertyView.Create(propertyId, request.VisitorId.Trim().ToSha256Hex(), timeProvider.GetUtcNow());
-        await propertyViewRepository.AddIfNotExistsAsync(view, cancellationToken);
+        var view = PropertyView.Create(propertyId, request.VisitorId.ToVisitorHash(), timeProvider.GetUtcNow());
+        await propertyViewRepository.AddOrRefreshAsync(view, cancellationToken);
         return Result.Success();
     }
 }

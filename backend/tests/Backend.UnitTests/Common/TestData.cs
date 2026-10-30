@@ -14,8 +14,8 @@ internal static class TestData
 
     public static readonly DateTimeOffset Now = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
-    public static Address Address() => Domain.Properties.Address.Create(
-        "Rua das Flores", "100", "Apto 12", "Centro", "São Paulo", "sp", "01001-000");
+    public static Address Address(string neighborhood = "Centro", string city = "São Paulo") => Domain.Properties.Address.Create(
+        "Rua das Flores", "100", "Apto 12", neighborhood, city, "sp", "01001-000");
 
     public static AddressRequest AddressRequest() =>
         new("Rua das Flores", "100", null, "Centro", "São Paulo", "SP", "01001-000");
@@ -23,21 +23,25 @@ internal static class TestData
     public static Property Property(
         PropertyPurpose purpose = PropertyPurpose.Sale,
         PropertyType type = PropertyType.House,
-        string title = "Casa com quintal") =>
+        string title = "Casa com quintal",
+        decimal price = 500_000m,
+        string neighborhood = "Centro",
+        string city = "São Paulo",
+        DateTimeOffset? createdAt = null) =>
         Domain.Properties.Property.Create(
             title,
             "Casa ampla e iluminada.",
             type,
             purpose,
-            500_000m,
+            price,
             null,
             1_200m,
             150m,
             type == PropertyType.Land ? 0 : 3,
             type == PropertyType.Land ? 0 : 2,
             2,
-            Address(),
-            Now);
+            Address(neighborhood, city),
+            createdAt ?? Now);
 
     public static CreatePropertyRequest CreatePropertyRequest(string title = "Casa com quintal") =>
         new(title, "Casa ampla e iluminada.", PropertyType.House, PropertyPurpose.Sale, 500_000m, null, 1_200m, 150m, 3, 2, 2, AddressRequest());

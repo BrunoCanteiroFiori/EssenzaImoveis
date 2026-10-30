@@ -41,6 +41,7 @@ export function PropertyPreview({ draft, property }: { draft: PropertyDraft; pro
   const [view, setView] = useState<PreviewView>("card");
   const [expanded, setExpanded] = useState(false);
   const preview = toPreview(draft, property);
+  const showMap = Boolean(draft.neighborhood.trim() && draft.city.trim());
 
   return (
     <Panel title="Prévia no site" className="xl:sticky xl:top-4 xl:max-h-[calc(100vh-2rem)] xl:overflow-y-auto">
@@ -69,7 +70,7 @@ export function PropertyPreview({ draft, property }: { draft: PropertyDraft; pro
           )}
         </div>
 
-        {view === "card" ? <PropertyCard property={preview} preview /> : !expanded && <PropertyDetailsView property={preview} preview />}
+        {view === "card" ? <PropertyCard property={preview} preview /> : !expanded && <PropertyDetailsView property={preview} preview showMap={showMap} />}
 
         {property && property.status !== "Available" && (
           <p className="text-xs text-muted-foreground">
@@ -79,7 +80,7 @@ export function PropertyPreview({ draft, property }: { draft: PropertyDraft; pro
       </div>
 
       <Dialog open={expanded} title="Prévia da página do imóvel" size="xl" onClose={() => setExpanded(false)}>
-        <PropertyDetailsView property={preview} preview />
+        <PropertyDetailsView property={preview} preview showMap={showMap} />
       </Dialog>
     </Panel>
   );

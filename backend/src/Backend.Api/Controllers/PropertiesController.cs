@@ -1,5 +1,8 @@
+using System.ComponentModel.DataAnnotations;
 using Backend.Api.Authorization;
 using Backend.Api.RateLimiting;
+using Backend.Api.Visitors;
+using Backend.Application.Common;
 using Backend.Application.Common.Dtos;
 using Backend.Application.Properties;
 using Backend.Application.Properties.Dtos;
@@ -58,6 +61,38 @@ public sealed class PropertiesController(
     {
         var locations = await propertySearchService.GetLocationsAsync(cancellationToken);
         return Ok(locations);
+    }
+
+    /// <summary>
+    /// Imóveis disponíveis que o visitante viu por último.
+    /// </summary>
+    [HttpGet("recently-viewed")]
+    [AllowAnonymous]
+    [ProducesResponseType<IReadOnlyList<PropertySummaryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<IReadOnlyList<PropertySummaryResponse>>> GetRecentlyViewed(
+        [FromHeader(Name = VisitorHeaders.Id), Required, MinLength(VisitorIdentity.IdMinLength), MaxLength(VisitorIdentity.IdMaxLength)] string visitorId,
+        CancellationToken cancellationToken)
+    {
+        var properties = await propertySearchService.GetRecentlyViewedAsync(visitorId, cancellationToken);
+        return Ok(properties);
+    }
+
+    /// <summary>
+    /// Sugestões para quem está vendo um imóvel, a partir dele e do que o visitante viu antes (cabeçalho X-Visitor-Id, opcional).
+    /// </summary>
+    [HttpGet("{id:guid}/suggestions")]
+    [AllowAnonymous]
+    [ProducesResponseType<IReadOnlyList<PropertySummaryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<PropertySummaryResponse>>> GetSuggestions(
+        Guid id,
+        [FromHeader(Name = VisitorHeaders.Id), MinLength(VisitorIdentity.IdMinLength), MaxLength(VisitorIdentity.IdMaxLength)] string? visitorId,
+        CancellationToken cancellationToken)
+    {
+        var result = await propertySearchService.GetSuggestionsAsync(id, visitorId, cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : ToProblem(result.Error);
     }
 
     /// <summary>
