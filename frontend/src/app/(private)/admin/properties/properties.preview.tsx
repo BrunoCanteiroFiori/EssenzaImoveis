@@ -26,15 +26,12 @@ function toPreview(draft: PropertyDraft, property?: Property): PropertySummary &
     title: input.title.trim() || "Título do anúncio",
     description: input.description.trim() || "A descrição do imóvel aparece aqui.",
     status: property?.status ?? "Available",
-    street: address.street.trim() || "Logradouro",
     neighborhood: address.neighborhood.trim() || "Bairro",
     city: address.city.trim() || "Cidade",
     state: address.state,
     coverImageUrl: media.find((item) => item.type === "Photo")?.url ?? null,
     media,
     mediaCount: media.length,
-    isSponsored: property?.isSponsored ?? false,
-    temperature: { recentViews: 0, level: "Cold" },
     createdAt: property?.createdAt ?? "",
   };
 }
@@ -74,11 +71,11 @@ export function PropertyPreview({ draft, property }: { draft: PropertyDraft; pro
 
         {view === "card" ? <PropertyCard property={preview} preview /> : !expanded && <PropertyDetailsView property={preview} preview />}
 
-        <p className="text-xs text-muted-foreground">
-          {property && property.status !== "Available"
-            ? `Status atual: ${propertyStatusLabels[property.status]}. Só imóveis disponíveis aparecem no site.`
-            : "A temperatura real depende das visitas dos últimos 30 dias."}
-        </p>
+        {property && property.status !== "Available" && (
+          <p className="text-xs text-muted-foreground">
+            Status atual: {propertyStatusLabels[property.status]}. Só imóveis disponíveis aparecem no site.
+          </p>
+        )}
       </div>
 
       <Dialog open={expanded} title="Prévia da página do imóvel" size="xl" onClose={() => setExpanded(false)}>

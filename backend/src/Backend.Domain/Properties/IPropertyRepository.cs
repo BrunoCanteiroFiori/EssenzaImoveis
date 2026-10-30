@@ -6,16 +6,14 @@ namespace Backend.Domain.Properties;
 public interface IPropertyRepository : IRepository<Property>
 {
     /// <summary>
-    /// Busca paginada. A ordenação por relevância coloca primeiro os patrocinados ativos em <paramref name="now"/>;
-    /// a ordenação por temperatura considera as visualizações desde <paramref name="viewsSince"/>.
+    /// Busca paginada. A ordenação por relevância segue <see cref="PropertyRecommendation"/>, com os patrocinados ativos
+    /// em <paramref name="now"/>; ela e a ordenação por temperatura consideram as visualizações desde <paramref name="viewsSince"/>.
     /// </summary>
     Task<PagedList<Property>> SearchAsync(
         PropertySearchFilter filter,
         DateTimeOffset now,
         DateTimeOffset viewsSince,
         CancellationToken cancellationToken = default);
-
-    Task<IReadOnlyList<Property>> GetSponsoredAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<Property>> GetHottestAsync(DateTimeOffset viewsSince, int limit, CancellationToken cancellationToken = default);
 

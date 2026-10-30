@@ -22,7 +22,7 @@ public sealed class PropertiesController(
 {
     /// <summary>
     /// Busca pública de imóveis disponíveis por localidade, tipo, finalidade, quartos, vagas, metragem e valor.
-    /// Na ordenação por relevância, os patrocinados aparecem primeiro.
+    /// A ordenação por relevância usa o algoritmo de recomendação.
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
@@ -37,7 +37,7 @@ public sealed class PropertiesController(
     }
 
     /// <summary>
-    /// Destaques da página inicial: patrocinados, mais quentes e mais recentes.
+    /// Vitrine da página inicial: destaques, compra, aluguel, mais buscados e mais recentes.
     /// </summary>
     [HttpGet("featured")]
     [AllowAnonymous]
@@ -94,11 +94,11 @@ public sealed class PropertiesController(
     /// </summary>
     [HttpGet("manage")]
     [Authorize(Policy = Policies.ReadProperties)]
-    [ProducesResponseType<PagedResponse<PropertySummaryResponse>>(StatusCodes.Status200OK)]
+    [ProducesResponseType<PagedResponse<PropertyManagementSummaryResponse>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<PagedResponse<PropertySummaryResponse>>> List(
+    public async Task<ActionResult<PagedResponse<PropertyManagementSummaryResponse>>> List(
         [FromQuery] ListPropertiesRequest request,
         CancellationToken cancellationToken)
     {

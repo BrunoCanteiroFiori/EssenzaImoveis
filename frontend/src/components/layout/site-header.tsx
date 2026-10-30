@@ -6,7 +6,6 @@ import { ThemeToggle } from "./theme-toggle";
 const links = [
   { href: "/properties?purpose=Sale", label: "Comprar" },
   { href: "/properties?purpose=Rent", label: "Alugar" },
-  { href: "/properties?sort=Hottest", label: "Mais procurados" },
   { href: "/#contato", label: "Contato" },
 ];
 

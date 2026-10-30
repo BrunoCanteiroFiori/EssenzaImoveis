@@ -11,4 +11,4 @@ public sealed record DashboardSummaryResponse(
     int SponsoredProperties,
     int NewMessages,
     int RecentViews,
-    IReadOnlyList<PropertySummaryResponse> HottestProperties);
+    IReadOnlyList<PropertyManagementSummaryResponse> HottestProperties);

@@ -15,7 +15,7 @@ import { cn } from "@/lib/cn";
 import { formatPrice } from "@/lib/format";
 import { propertyPurposeLabels, propertyStatusLabels, propertyTypeLabels } from "@/lib/labels";
 import { deleteProperty } from "@/lib/properties.api";
-import type { PropertySortField, PropertyStatus, PropertySummary } from "@/lib/properties.types";
+import type { PropertyManagementSummary, PropertySortField, PropertyStatus } from "@/lib/properties.types";
 import { assetUrl } from "@/lib/site-config";
 
 export const statusTones: Record<PropertyStatus, "success" | "warning" | "info" | "neutral" | "accent"> = {
@@ -55,7 +55,7 @@ function SortableHeader({ label, direction, onSort }: { label: string; direction
 }
 
 type PropertiesComponentProps = {
-  properties: PropertySummary[];
+  properties: PropertyManagementSummary[];
   sortField?: PropertySortField;
   sortDescending?: boolean;
   onSort: (field: PropertySortField) => void;
@@ -66,7 +66,7 @@ type PropertiesComponentProps = {
 export function PropertiesComponent({ properties, sortField, sortDescending, onSort, onChanged }: PropertiesComponentProps) {
   const { hasPermission, handleError } = useAuth();
   const router = useRouter();
-  const [deleting, setDeleting] = useState<PropertySummary | null>(null);
+  const [deleting, setDeleting] = useState<PropertyManagementSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

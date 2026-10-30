@@ -37,6 +37,6 @@ public sealed class DashboardService(
             sponsored,
             newMessages,
             recentViews,
-            [.. hottest.Select(property => property.ToSummaryResponse(now, views.GetValueOrDefault(property.Id)))]);
+            [.. hottest.Select(property => property.ToManagementSummaryResponse(now, views.GetValueOrDefault(property.Id)))]);
     }
 }

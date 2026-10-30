@@ -8,8 +8,6 @@ import { assetUrl, siteConfig } from "@/lib/site-config";
 import { whatsappLink } from "@/lib/whatsapp";
 import { ContactForm } from "./contact-form";
 import { MediaCarousel } from "./media-carousel";
-import { SponsoredBadge } from "./sponsored-badge";
-import { TemperatureBadge } from "./temperature-badge";
 
 /**
  * Conteúdo da página pública do imóvel, compartilhado com a prévia da área administrativa.
@@ -37,15 +35,13 @@ export function PropertyDetailsView({ property, preview = false }: { property: P
 
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              {property.isSponsored && <SponsoredBadge />}
-              <TemperatureBadge temperature={property.temperature} />
               <Badge tone="accent">{propertyTypeLabels[property.type]}</Badge>
               <Badge>{propertyPurposeLabels[property.purpose]}</Badge>
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-balance">{property.title}</h1>
             <p className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="size-4 shrink-0" aria-hidden />
-              {property.street}, {property.neighborhood} — {property.city}/{property.state}
+              {property.neighborhood} — {property.city}/{property.state}
             </p>
           </header>
 

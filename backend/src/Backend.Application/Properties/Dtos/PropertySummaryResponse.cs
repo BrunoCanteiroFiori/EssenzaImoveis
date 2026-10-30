@@ -3,7 +3,7 @@ using Backend.Domain.Properties;
 namespace Backend.Application.Properties.Dtos;
 
 /// <summary>
-/// Resumo do imóvel para cards e listagens.
+/// Resumo público do imóvel para cards e listagens. Não expõe temperatura, patrocínio nem o endereço completo.
 /// </summary>
 public sealed record PropertySummaryResponse(
     Guid Id,
@@ -21,6 +21,4 @@ public sealed record PropertySummaryResponse(
     string State,
     string? CoverImageUrl,
     int MediaCount,
-    bool IsSponsored,
-    TemperatureResponse Temperature,
     DateTimeOffset CreatedAt);

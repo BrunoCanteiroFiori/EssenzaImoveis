@@ -1,6 +1,7 @@
 using Backend.Application.Common;
 using Backend.Application.Common.Dtos;
 using Backend.Application.Properties.Dtos;
+using Backend.Domain.Common;
 using Backend.Domain.Properties;
 using Backend.Domain.PropertyViews;
 
@@ -13,11 +14,19 @@ public sealed class PropertySearchService(
 {
     public const int FeaturedLimit = 6;
 
-    public Task<PagedResponse<PropertySummaryResponse>> SearchAsync(SearchPropertiesRequest request, CancellationToken cancellationToken = default) =>
-        SearchAsync(request.ToFilter(), cancellationToken);
+    public async Task<PagedResponse<PropertySummaryResponse>> SearchAsync(SearchPropertiesRequest request, CancellationToken cancellationToken = default)
+    {
+        var page = await SearchAsync(request.ToFilter(), timeProvider.GetUtcNow(), cancellationToken);
+        return page.ToResponse(property => property.ToSummaryResponse());
+    }
 
-    public Task<PagedResponse<PropertySummaryResponse>> ListAsync(ListPropertiesRequest request, CancellationToken cancellationToken = default) =>
-        SearchAsync(request.ToFilter(), cancellationToken);
+    public async Task<PagedResponse<PropertyManagementSummaryResponse>> ListAsync(ListPropertiesRequest request, CancellationToken cancellationToken = default)
+    {
+        var now = timeProvider.GetUtcNow();
+        var page = await SearchAsync(request.ToFilter(), now, cancellationToken);
+        var views = await CountRecentViewsAsync(page.Items, now, cancellationToken);
+        return page.ToResponse(property => property.ToManagementSummaryResponse(now, views.GetValueOrDefault(property.Id)));
+    }
 
     public async Task<Result<PropertyDetailsResponse>> GetDetailsAsync(Guid id, CancellationToken cancellationToken = default)
     {
@@ -27,25 +36,27 @@ public sealed class PropertySearchService(
             return PropertyErrors.NotFound(id);
         }
 
-        var now = timeProvider.GetUtcNow();
-        var views = await CountRecentViewsAsync([property], now, cancellationToken);
-        return property.ToDetailsResponse(now, views.GetValueOrDefault(property.Id));
+        return property.ToDetailsResponse();
     }
 
     public async Task<FeaturedPropertiesResponse> GetFeaturedAsync(CancellationToken cancellationToken = default)
     {
         var now = timeProvider.GetUtcNow();
-        var viewsSince = now - PropertyTemperature.Window;
+        var topScoredFilter = FeaturedFilter(PropertySortOrder.Relevance);
 
-        var sponsored = await propertyRepository.GetSponsoredAsync(now, FeaturedLimit, cancellationToken);
-        var hottest = await propertyRepository.GetHottestAsync(viewsSince, FeaturedLimit, cancellationToken);
-        var newest = await propertyRepository.SearchAsync(NewestAvailableFilter(), now, viewsSince, cancellationToken);
+        var sponsored = await SearchAsync(topScoredFilter with { SponsoredOnly = true }, now, cancellationToken);
+        var topScored = await SearchAsync(topScoredFilter, now, cancellationToken);
+        var forSale = await SearchAsync(topScoredFilter with { Purpose = PropertyPurpose.Sale }, now, cancellationToken);
+        var forRent = await SearchAsync(topScoredFilter with { Purpose = PropertyPurpose.Rent }, now, cancellationToken);
+        var mostSearched = await propertyRepository.GetHottestAsync(now - PropertyTemperature.Window, FeaturedLimit, cancellationToken);
+        var newest = await SearchAsync(FeaturedFilter(PropertySortOrder.Newest), now, cancellationToken);
 
-        var views = await CountRecentViewsAsync([.. sponsored, .. hottest, .. newest.Items], now, cancellationToken);
         return new FeaturedPropertiesResponse(
-            ToSummaries(sponsored, now, views),
-            ToSummaries(hottest, now, views),
-            ToSummaries(newest.Items, now, views));
+            ToSummaries(PropertyRecommendation.SelectHighlights(sponsored.Items, topScored.Items)),
+            ToSummaries(forSale.Items),
+            ToSummaries(forRent.Items),
+            ToSummaries(mostSearched),
+            ToSummaries(newest.Items));
     }
 
     public async Task<IReadOnlyList<PropertyLocationResponse>> GetLocationsAsync(CancellationToken cancellationToken = default)
@@ -54,7 +65,7 @@ public sealed class PropertySearchService(
         return [.. locations.Select(location => location.ToResponse())];
     }
 
-    private static PropertySearchFilter NewestAvailableFilter() => new(
+    private static PropertySearchFilter FeaturedFilter(PropertySortOrder sort) => new(
         Text: null,
         Type: null,
         Purpose: null,
@@ -66,23 +77,15 @@ public sealed class PropertySearchService(
         MaxArea: null,
         MinPrice: null,
         MaxPrice: null,
-        Sort: PropertySortOrder.Newest,
+        Sort: sort,
         Page: 1,
         PageSize: FeaturedLimit);
 
-    private static IReadOnlyList<PropertySummaryResponse> ToSummaries(
-        IEnumerable<Property> properties,
-        DateTimeOffset now,
-        IReadOnlyDictionary<Guid, int> views) =>
-        [.. properties.Select(property => property.ToSummaryResponse(now, views.GetValueOrDefault(property.Id)))];
+    private static IReadOnlyList<PropertySummaryResponse> ToSummaries(IEnumerable<Property> properties) =>
+        [.. properties.Select(property => property.ToSummaryResponse())];
 
-    private async Task<PagedResponse<PropertySummaryResponse>> SearchAsync(PropertySearchFilter filter, CancellationToken cancellationToken)
-    {
-        var now = timeProvider.GetUtcNow();
-        var page = await propertyRepository.SearchAsync(filter, now, now - PropertyTemperature.Window, cancellationToken);
-        var views = await CountRecentViewsAsync(page.Items, now, cancellationToken);
-        return page.ToResponse(property => property.ToSummaryResponse(now, views.GetValueOrDefault(property.Id)));
-    }
+    private Task<PagedList<Property>> SearchAsync(PropertySearchFilter filter, DateTimeOffset now, CancellationToken cancellationToken) =>
+        propertyRepository.SearchAsync(filter, now, now - PropertyTemperature.Window, cancellationToken);
 
     private async Task<IReadOnlyDictionary<Guid, int>> CountRecentViewsAsync(
         IEnumerable<Property> properties,
