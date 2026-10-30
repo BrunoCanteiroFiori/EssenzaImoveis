@@ -363,11 +363,48 @@ namespace Backend.Repository.Migrations
                     b.HasIndex("PropertyId", "ViewedAt")
                         .HasDatabaseName("ix_property_views_property_id_viewed_at");
 
+                    b.HasIndex("VisitorHash", "ViewedAt")
+                        .HasDatabaseName("ix_property_views_visitor_hash_viewed_at");
+
                     b.HasIndex("PropertyId", "VisitorHash", "ViewedOn")
                         .IsUnique()
                         .HasDatabaseName("ix_property_views_property_id_visitor_hash_viewed_on");
 
                     b.ToTable("property_views", (string)null);
+                });
+
+            modelBuilder.Entity("Backend.Domain.SavedProperties.SavedProperty", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("PropertyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateTimeOffset>("SavedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("saved_at");
+
+                    b.Property<string>("VisitorHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("visitor_hash")
+                        .IsFixedLength();
+
+                    b.HasKey("Id")
+                        .HasName("pk_saved_properties");
+
+                    b.HasIndex("PropertyId")
+                        .HasDatabaseName("ix_saved_properties_property_id");
+
+                    b.HasIndex("VisitorHash", "PropertyId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_saved_properties_visitor_hash_property_id");
+
+                    b.ToTable("saved_properties", (string)null);
                 });
 
             modelBuilder.Entity("Backend.Domain.Users.User", b =>
@@ -474,6 +511,16 @@ namespace Backend.Repository.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_property_views_properties_property_id");
+                });
+
+            modelBuilder.Entity("Backend.Domain.SavedProperties.SavedProperty", b =>
+                {
+                    b.HasOne("Backend.Domain.Properties.Property", null)
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_saved_properties_properties_property_id");
                 });
 #pragma warning restore 612, 618
         }

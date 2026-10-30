@@ -18,4 +18,15 @@ public interface IPropertySearchService
     Task<FeaturedPropertiesResponse> GetFeaturedAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<PropertyLocationResponse>> GetLocationsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Imóveis disponíveis que o visitante viu por último.
+    /// </summary>
+    Task<IReadOnlyList<PropertySummaryResponse>> GetRecentlyViewedAsync(string visitorId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sugestões para quem está vendo um imóvel, a partir dele e do que o visitante viu antes. Sem visitante, usa só o imóvel.
+    /// Nunca sugere um imóvel que o visitante já viu.
+    /// </summary>
+    Task<Result<IReadOnlyList<PropertySummaryResponse>>> GetSuggestionsAsync(Guid id, string? visitorId, CancellationToken cancellationToken = default);
 }

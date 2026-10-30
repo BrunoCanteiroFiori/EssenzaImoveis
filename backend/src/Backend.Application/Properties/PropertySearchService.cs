@@ -13,6 +13,10 @@ public sealed class PropertySearchService(
     TimeProvider timeProvider) : IPropertySearchService
 {
     public const int FeaturedLimit = 6;
+    public const int RecentlyViewedLimit = 12;
+    public const int SuggestionLimit = 6;
+    public const int SuggestionViewedLimit = 10;
+    public const int SuggestionCandidateLimit = 200;
 
     public async Task<PagedResponse<PropertySummaryResponse>> SearchAsync(SearchPropertiesRequest request, CancellationToken cancellationToken = default)
     {
@@ -63,6 +67,31 @@ public sealed class PropertySearchService(
     {
         var locations = await propertyRepository.GetAvailableLocationsAsync(cancellationToken);
         return [.. locations.Select(location => location.ToResponse())];
+    }
+
+    public async Task<IReadOnlyList<PropertySummaryResponse>> GetRecentlyViewedAsync(string visitorId, CancellationToken cancellationToken = default) =>
+        ToSummaries(await propertyRepository.GetRecentlyViewedAsync(visitorId.ToVisitorHash(), RecentlyViewedLimit, cancellationToken));
+
+    public async Task<Result<IReadOnlyList<PropertySummaryResponse>>> GetSuggestionsAsync(Guid id, string? visitorId, CancellationToken cancellationToken = default)
+    {
+        var property = await propertyRepository.GetByIdAsync(id, cancellationToken);
+        if (property is null || !property.IsPubliclyVisible)
+        {
+            return PropertyErrors.NotFound(id);
+        }
+
+        IReadOnlyList<Property> recentlyViewed = string.IsNullOrWhiteSpace(visitorId)
+            ? []
+            : await propertyRepository.GetRecentlyViewedAsync(visitorId.ToVisitorHash(), SuggestionViewedLimit, cancellationToken);
+        List<Property> viewed = [property, .. recentlyViewed.Where(other => other.Id != id)];
+
+        var candidates = await propertyRepository.GetSuggestionCandidatesAsync(
+            [.. viewed.Select(other => other.Purpose).Distinct()],
+            [.. viewed.Select(other => other.Id)],
+            SuggestionCandidateLimit,
+            cancellationToken);
+
+        return Result<IReadOnlyList<PropertySummaryResponse>>.Success(ToSummaries(PropertySuggestion.Rank(candidates, viewed, SuggestionLimit)));
     }
 
     private static PropertySearchFilter FeaturedFilter(PropertySortOrder sort) => new(

@@ -5,10 +5,10 @@ namespace Backend.Domain.PropertyViews;
 public interface IPropertyViewRepository : IRepository<PropertyView>
 {
     /// <summary>
-    /// Grava a visualização de forma atômica, ignorando se o mesmo visitante já visualizou o imóvel no mesmo dia
-    /// (inclusive em requisições simultâneas). Retorna verdadeiro se gravou.
+    /// Grava a visualização de forma atômica. Se o mesmo visitante já visualizou o imóvel no mesmo dia (inclusive em
+    /// requisições simultâneas), só atualiza a hora: continua contando uma vez, e os "vistos por último" ficam na ordem certa.
     /// </summary>
-    Task<bool> AddIfNotExistsAsync(PropertyView view, CancellationToken cancellationToken = default);
+    Task AddOrRefreshAsync(PropertyView view, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Quantidade de visualizações por imóvel desde <paramref name="since"/>. Imóveis sem visualização não aparecem.

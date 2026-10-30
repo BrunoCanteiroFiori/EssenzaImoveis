@@ -19,6 +19,8 @@ type RequestOptions = {
   body?: unknown;
   formData?: FormData;
   signal?: AbortSignal;
+  /** Identificador anônimo do visitante, em rotas públicas que variam por navegador. */
+  visitorId?: string;
 };
 
 const fallbackMessages: Record<number, string> = {
@@ -46,13 +48,16 @@ function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
-function send(path: string, { method = "GET", body, formData, signal }: RequestOptions) {
+function send(path: string, { method = "GET", body, formData, signal, visitorId }: RequestOptions) {
   return fetch(`${siteConfig.apiUrl}${path}`, {
     method,
     credentials: "include",
     cache: "no-store",
     signal,
-    headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+    headers: {
+      ...(body !== undefined && { "Content-Type": "application/json" }),
+      ...(visitorId && { "X-Visitor-Id": visitorId }),
+    },
     body: formData ?? (body !== undefined ? JSON.stringify(body) : undefined),
   });
 }

@@ -16,6 +16,7 @@ public sealed class PropertyViewConfiguration : IEntityTypeConfiguration<Propert
         builder.HasOne<Property>().WithMany().HasForeignKey(view => view.PropertyId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(view => new { view.PropertyId, view.VisitorHash, view.ViewedOn }).IsUnique();
         builder.HasIndex(view => new { view.PropertyId, view.ViewedAt });
+        builder.HasIndex(view => new { view.VisitorHash, view.ViewedAt });
         builder.Ignore(view => view.DomainEvents);
     }
 }

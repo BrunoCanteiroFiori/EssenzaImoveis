@@ -13,6 +13,7 @@ public static class RateLimitPolicies
     public const string Refresh = "refresh";
     public const string ContactMessages = "contact-messages";
     public const string PropertyViews = "property-views";
+    public const string SavedProperties = "saved-properties";
     public const string ZipCodes = "zip-codes";
 
     public static IServiceCollection AddRateLimitPolicies(this IServiceCollection services)
@@ -24,6 +25,7 @@ public static class RateLimitPolicies
             AddFixedWindow(options, Refresh, permitLimit: 30, TimeSpan.FromMinutes(1));
             AddFixedWindow(options, ContactMessages, permitLimit: 5, TimeSpan.FromMinutes(10));
             AddFixedWindow(options, PropertyViews, permitLimit: 60, TimeSpan.FromMinutes(1));
+            AddFixedWindow(options, SavedProperties, permitLimit: 60, TimeSpan.FromMinutes(1));
             AddFixedWindow(options, ZipCodes, permitLimit: 30, TimeSpan.FromMinutes(1));
         });
 

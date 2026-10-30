@@ -8,18 +8,14 @@ public sealed class PropertyViewRepository(AppDbContext dbContext) : RepositoryB
 {
     private readonly AppDbContext _dbContext = dbContext;
 
-    public async Task<bool> AddIfNotExistsAsync(PropertyView view, CancellationToken cancellationToken = default)
-    {
-        var inserted = await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+    public async Task AddOrRefreshAsync(PropertyView view, CancellationToken cancellationToken = default) =>
+        await _dbContext.Database.ExecuteSqlInterpolatedAsync(
             $"""
             INSERT INTO property_views (id, property_id, visitor_hash, viewed_on, viewed_at)
             VALUES ({view.Id}, {view.PropertyId}, {view.VisitorHash}, {view.ViewedOn}, {view.ViewedAt})
-            ON CONFLICT (property_id, visitor_hash, viewed_on) DO NOTHING
+            ON CONFLICT (property_id, visitor_hash, viewed_on) DO UPDATE SET viewed_at = EXCLUDED.viewed_at
             """,
             cancellationToken);
-
-        return inserted > 0;
-    }
 
     public async Task<IReadOnlyDictionary<Guid, int>> CountByPropertySinceAsync(
         IReadOnlyCollection<Guid> propertyIds,

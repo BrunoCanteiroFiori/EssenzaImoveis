@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PropertyDetailsView } from "@/components/properties/property-details-view";
+import { SuggestedProperties } from "@/components/properties/suggested-properties";
 import { ViewTracker } from "@/components/properties/view-tracker";
 import { Skeleton } from "@/components/ui/feedback";
 import { getPropertyDetails } from "@/lib/properties.api";
@@ -19,6 +20,7 @@ export async function PropertyDetailsComponent({ params }: { params: Promise<{ i
       </Link>
 
       <PropertyDetailsView property={property} />
+      <SuggestedProperties key={property.id} propertyId={property.id} />
     </div>
   );
 }

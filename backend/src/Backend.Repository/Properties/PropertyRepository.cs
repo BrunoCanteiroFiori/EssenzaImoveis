@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using Backend.Domain.Common;
 using Backend.Domain.Properties;
 using Backend.Domain.PropertyViews;
+using Backend.Domain.SavedProperties;
 using Backend.Repository.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,7 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
         : 4;
 
     private readonly DbSet<PropertyView> _views = dbContext.Set<PropertyView>();
+    private readonly DbSet<SavedProperty> _savedProperties = dbContext.Set<SavedProperty>();
 
     public async Task<PagedList<Property>> SearchAsync(
         PropertySearchFilter filter,
@@ -55,6 +57,41 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
             .Take(limit)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<Property>> GetRecentlyViewedAsync(string visitorHash, int limit, CancellationToken cancellationToken = default) =>
+        await Entities.AsNoTracking()
+            .Where(property => property.Status == PropertyStatus.Available
+                && _views.Any(view => view.PropertyId == property.Id && view.VisitorHash == visitorHash))
+            .OrderByDescending(property => _views
+                .Where(view => view.PropertyId == property.Id && view.VisitorHash == visitorHash)
+                .Max(view => view.ViewedAt))
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Property>> GetSavedAsync(string visitorHash, int limit, CancellationToken cancellationToken = default) =>
+        await Entities.AsNoTracking()
+            .Join(
+                _savedProperties.Where(savedProperty => savedProperty.VisitorHash == visitorHash),
+                property => property.Id,
+                savedProperty => savedProperty.PropertyId,
+                (property, savedProperty) => new { Property = property, savedProperty.SavedAt })
+            .OrderByDescending(saved => saved.SavedAt)
+            .Select(saved => saved.Property)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Property>> GetSuggestionCandidatesAsync(
+        IReadOnlyCollection<PropertyPurpose> purposes,
+        IReadOnlyCollection<Guid> excludedIds,
+        int limit,
+        CancellationToken cancellationToken = default) =>
+        await Entities.AsNoTracking()
+            .Where(property => property.Status == PropertyStatus.Available
+                && purposes.Contains(property.Purpose)
+                && !excludedIds.Contains(property.Id))
+            .OrderByDescending(property => property.CreatedAt)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<PropertyLocation>> GetAvailableLocationsAsync(CancellationToken cancellationToken = default)
     {
