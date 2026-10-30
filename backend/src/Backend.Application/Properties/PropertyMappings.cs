@@ -26,7 +26,25 @@ public static class PropertyMappings
         property.CreatedAt,
         property.UpdatedAt);
 
-    public static PropertySummaryResponse ToSummaryResponse(this Property property, DateTimeOffset now, int recentViews) => new(
+    public static PropertySummaryResponse ToSummaryResponse(this Property property) => new(
+        property.Id,
+        property.Title,
+        property.Type,
+        property.Purpose,
+        property.Status,
+        property.Price,
+        property.Area,
+        property.Bedrooms,
+        property.Bathrooms,
+        property.ParkingSpaces,
+        property.Address.Neighborhood,
+        property.Address.City,
+        property.Address.State,
+        property.GetCoverImageUrl(),
+        property.Media.Count,
+        property.CreatedAt);
+
+    public static PropertyManagementSummaryResponse ToManagementSummaryResponse(this Property property, DateTimeOffset now, int recentViews) => new(
         property.Id,
         property.Title,
         property.Type,
@@ -46,7 +64,7 @@ public static class PropertyMappings
         ToTemperatureResponse(recentViews),
         property.CreatedAt);
 
-    public static PropertyDetailsResponse ToDetailsResponse(this Property property, DateTimeOffset now, int recentViews) => new(
+    public static PropertyDetailsResponse ToDetailsResponse(this Property property) => new(
         property.Id,
         property.Title,
         property.Description,
@@ -59,14 +77,11 @@ public static class PropertyMappings
         property.Bedrooms,
         property.Bathrooms,
         property.ParkingSpaces,
-        property.Address.Street,
         property.Address.Neighborhood,
         property.Address.City,
         property.Address.State,
         property.GetCoverImageUrl(),
         property.ToMediaResponses(),
-        property.IsSponsored(now),
-        ToTemperatureResponse(recentViews),
         property.CreatedAt);
 
     public static AddressResponse ToResponse(this Address address) => new(
@@ -93,6 +108,9 @@ public static class PropertyMappings
         request.State,
         request.ZipCode);
 
+    /// <summary>
+    /// A busca pública não ordena por temperatura: esse pedido vira a ordenação por relevância.
+    /// </summary>
     public static PropertySearchFilter ToFilter(this SearchPropertiesRequest request) => new(
         request.Location,
         request.Type,
@@ -105,7 +123,7 @@ public static class PropertyMappings
         request.MaxArea,
         request.MinPrice,
         request.MaxPrice,
-        request.Sort,
+        request.Sort == PropertySortOrder.Hottest ? PropertySortOrder.Relevance : request.Sort,
         request.Page,
         request.PageSize);
 

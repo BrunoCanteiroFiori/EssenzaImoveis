@@ -3,8 +3,6 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Bath, BedDouble, Car, MapPin, MessageCircle, Receipt, Ruler, Wallet } from "lucide-react";
 import { ContactForm } from "@/components/properties/contact-form";
 import { MediaCarousel } from "@/components/properties/media-carousel";
-import { SponsoredBadge } from "@/components/properties/sponsored-badge";
-import { TemperatureBadge } from "@/components/properties/temperature-badge";
 import { ViewTracker } from "@/components/properties/view-tracker";
 import { buttonClass } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,15 +43,13 @@ export async function PropertyDetailsComponent({ params }: { params: Promise<{ i
 
           <header className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              {property.isSponsored && <SponsoredBadge />}
-              <TemperatureBadge temperature={property.temperature} />
               <Badge tone="accent">{propertyTypeLabels[property.type]}</Badge>
               <Badge>{propertyPurposeLabels[property.purpose]}</Badge>
             </div>
             <h1 className="text-3xl font-semibold tracking-tight text-balance">{property.title}</h1>
             <p className="flex items-center gap-1.5 text-muted-foreground">
               <MapPin className="size-4 shrink-0" aria-hidden />
-              {property.street}, {property.neighborhood} — {property.city}/{property.state}
+              {property.neighborhood} — {property.city}/{property.state}
             </p>
           </header>
 

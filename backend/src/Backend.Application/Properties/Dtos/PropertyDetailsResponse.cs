@@ -3,7 +3,7 @@ using Backend.Domain.Properties;
 namespace Backend.Application.Properties.Dtos;
 
 /// <summary>
-/// Detalhe público do imóvel. Não expõe número, complemento nem CEP do endereço.
+/// Detalhe público do imóvel. Do endereço, expõe só bairro, cidade e UF; não expõe temperatura nem patrocínio.
 /// </summary>
 public sealed record PropertyDetailsResponse(
     Guid Id,
@@ -18,12 +18,9 @@ public sealed record PropertyDetailsResponse(
     int Bedrooms,
     int Bathrooms,
     int ParkingSpaces,
-    string Street,
     string Neighborhood,
     string City,
     string State,
     string? CoverImageUrl,
     IReadOnlyList<PropertyMediaResponse> Media,
-    bool IsSponsored,
-    TemperatureResponse Temperature,
     DateTimeOffset CreatedAt);

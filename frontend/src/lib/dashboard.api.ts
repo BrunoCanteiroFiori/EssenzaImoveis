@@ -1,5 +1,5 @@
 import { apiFetch } from "./api-client";
-import type { PropertySummary } from "./properties.types";
+import type { PropertyManagementSummary } from "./properties.types";
 
 export type DashboardSummary = {
   availableProperties: number;
@@ -10,7 +10,7 @@ export type DashboardSummary = {
   sponsoredProperties: number;
   newMessages: number;
   recentViews: number;
-  hottestProperties: PropertySummary[];
+  hottestProperties: PropertyManagementSummary[];
 };
 
 export const getDashboardSummary = () => apiFetch<DashboardSummary>("/dashboard");

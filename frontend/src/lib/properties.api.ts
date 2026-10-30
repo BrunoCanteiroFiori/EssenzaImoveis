@@ -7,6 +7,7 @@ import type {
   PropertyDetails,
   PropertyInput,
   PropertyLocation,
+  PropertyManagementSummary,
   PropertyPurpose,
   PropertySearch,
   PropertySortOrder,
@@ -48,7 +49,7 @@ export type PropertyListFilter = {
 };
 
 export const listProperties = (filter: PropertyListFilter) =>
-  apiFetch<PagedResponse<PropertySummary>>(`/properties/manage${toQueryString({ ...filter, pageSize: 20 })}`);
+  apiFetch<PagedResponse<PropertyManagementSummary>>(`/properties/manage${toQueryString({ ...filter, pageSize: 20 })}`);
 
 export const getProperty = (id: string) => apiFetch<Property>(`/properties/manage/${id}`);
 

@@ -16,25 +16,16 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
         DateTimeOffset viewsSince,
         CancellationToken cancellationToken = default)
     {
-        var query = ApplyFilter(Entities.AsNoTracking(), filter);
+        var nowUtc = now.ToUniversalTime();
+        var query = ApplyFilter(Entities.AsNoTracking(), filter, nowUtc);
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await Sort(query, filter.Sort, now.ToUniversalTime(), viewsSince.ToUniversalTime())
+        var items = await Sort(query, filter.Sort, nowUtc, viewsSince.ToUniversalTime())
             .Skip((filter.Page - 1) * filter.PageSize)
             .Take(filter.PageSize)
             .ToListAsync(cancellationToken);
 
         return new PagedList<Property>(items, totalCount, filter.Page, filter.PageSize);
-    }
-
-    public async Task<IReadOnlyList<Property>> GetSponsoredAsync(DateTimeOffset now, int limit, CancellationToken cancellationToken = default)
-    {
-        var nowUtc = now.ToUniversalTime();
-        return await Entities.AsNoTracking()
-            .Where(property => property.Status == PropertyStatus.Available && property.SponsoredUntil > nowUtc)
-            .OrderByDescending(property => property.CreatedAt)
-            .Take(limit)
-            .ToListAsync(cancellationToken);
     }
 
     public async Task<IReadOnlyList<Property>> GetHottestAsync(DateTimeOffset viewsSince, int limit, CancellationToken cancellationToken = default)
@@ -82,7 +73,7 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
             .Where(property => ids.Contains(property.Id))
             .ToDictionaryAsync(property => property.Id, property => property.Title, cancellationToken);
 
-    private static IQueryable<Property> ApplyFilter(IQueryable<Property> query, PropertySearchFilter filter)
+    private static IQueryable<Property> ApplyFilter(IQueryable<Property> query, PropertySearchFilter filter, DateTimeOffset now)
     {
         if (!string.IsNullOrWhiteSpace(filter.Text))
         {
@@ -144,6 +135,11 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
             query = query.Where(property => property.Price <= maxPrice);
         }
 
+        if (filter.SponsoredOnly)
+        {
+            query = query.Where(property => property.SponsoredUntil > now);
+        }
+
         return query;
     }
 
@@ -157,7 +153,14 @@ public sealed class PropertyRepository(AppDbContext dbContext) : RepositoryBase<
                 .OrderByDescending(property => _views.Count(view => view.PropertyId == property.Id && view.ViewedAt >= viewsSince))
                 .ThenByDescending(property => property.CreatedAt),
             _ => query
-                .OrderByDescending(property => property.SponsoredUntil != null && property.SponsoredUntil > now)
-                .ThenByDescending(property => property.CreatedAt),
+                .Select(property => new PropertyRecommendationSignals
+                {
+                    Property = property,
+                    RecentViews = _views.Count(view => view.PropertyId == property.Id && view.ViewedAt >= viewsSince),
+                    IsSponsored = property.SponsoredUntil != null && property.SponsoredUntil > now,
+                })
+                .OrderByDescending(PropertyRecommendation.Score)
+                .ThenByDescending(signals => signals.Property.CreatedAt)
+                .Select(signals => signals.Property),
         };
 }

@@ -30,9 +30,13 @@ export type PropertySummary = {
   state: string;
   coverImageUrl: string | null;
   mediaCount: number;
+  createdAt: string;
+};
+
+/** Resumo da área administrativa. Temperatura e patrocínio não saem na área pública. */
+export type PropertyManagementSummary = PropertySummary & {
   isSponsored: boolean;
   temperature: Temperature;
-  createdAt: string;
 };
 
 export type PropertyDetails = {
@@ -48,14 +52,11 @@ export type PropertyDetails = {
   bedrooms: number;
   bathrooms: number;
   parkingSpaces: number;
-  street: string;
   neighborhood: string;
   city: string;
   state: string;
   coverImageUrl: string | null;
   media: PropertyMedia[];
-  isSponsored: boolean;
-  temperature: Temperature;
   createdAt: string;
 };
 
@@ -103,8 +104,10 @@ export type PropertyInput = Omit<
 >;
 
 export type FeaturedProperties = {
-  sponsored: PropertySummary[];
-  hottest: PropertySummary[];
+  highlights: PropertySummary[];
+  forSale: PropertySummary[];
+  forRent: PropertySummary[];
+  mostSearched: PropertySummary[];
   newest: PropertySummary[];
 };
 

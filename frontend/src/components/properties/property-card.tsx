@@ -5,21 +5,13 @@ import { formatPrice } from "@/lib/format";
 import { propertyPurposeLabels, propertyTypeLabels } from "@/lib/labels";
 import type { PropertySummary } from "@/lib/properties.types";
 import { assetUrl } from "@/lib/site-config";
-import { cn } from "@/lib/cn";
 import { PropertySpecs } from "./property-specs";
-import { SponsoredBadge } from "./sponsored-badge";
-import { TemperatureBadge } from "./temperature-badge";
 
 export function PropertyCard({ property, priority = false }: { property: PropertySummary; priority?: boolean }) {
   const cover = assetUrl(property.coverImageUrl);
 
   return (
-    <article
-      className={cn(
-        "group flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm transition-shadow hover:shadow-md",
-        property.isSponsored && "ring-2 ring-gold/70",
-      )}
-    >
+    <article className="group flex flex-col overflow-hidden rounded-2xl border bg-surface shadow-sm transition-shadow hover:shadow-md">
       <Link href={`/properties/${property.id}`} className="relative block aspect-[4/3] overflow-hidden bg-surface-muted">
         {cover ? (
           <Image
@@ -37,10 +29,6 @@ export function PropertyCard({ property, priority = false }: { property: Propert
             <span className="sr-only">Sem foto</span>
           </div>
         )}
-        <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {property.isSponsored && <SponsoredBadge />}
-          <TemperatureBadge temperature={property.temperature} />
-        </div>
         <span className="absolute bottom-3 left-3 rounded-full bg-surface/90 px-2.5 py-0.5 text-xs font-medium text-foreground backdrop-blur">
           {propertyTypeLabels[property.type]} · {propertyPurposeLabels[property.purpose]}
         </span>
@@ -73,11 +61,17 @@ export function PropertyCard({ property, priority = false }: { property: Propert
   );
 }
 
-export function PropertyGrid({ properties }: { properties: PropertySummary[] }) {
+/**
+ * Vitrine em uma linha com rolagem lateral: a seção fica baixa mesmo com vários imóveis.
+ * O `relative` mantém os textos `sr-only` dos cards dentro da rolagem; sem ele, eles alargam a página.
+ */
+export function PropertyRow({ properties, priority = false }: { properties: PropertySummary[]; priority?: boolean }) {
   return (
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="relative -mx-4 flex snap-x scroll-px-4 gap-6 overflow-x-auto px-4 pb-3 [scrollbar-width:thin] sm:mx-0 sm:scroll-px-0 sm:px-0">
       {properties.map((property, index) => (
-        <PropertyCard key={property.id} property={property} priority={index < 3} />
+        <div key={property.id} className="grid w-72 shrink-0 snap-start sm:w-80">
+          <PropertyCard property={property} priority={priority && index < 3} />
+        </div>
       ))}
     </div>
   );

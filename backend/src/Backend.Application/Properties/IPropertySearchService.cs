@@ -5,13 +5,13 @@ using Backend.Application.Properties.Dtos;
 namespace Backend.Application.Properties;
 
 /// <summary>
-/// Consultas de imóveis com temperatura: busca pública, listagem administrativa, detalhe público, destaques e localidades.
+/// Consultas de imóveis: busca pública, listagem administrativa (com temperatura e patrocínio), detalhe público, vitrine e localidades.
 /// </summary>
 public interface IPropertySearchService
 {
     Task<PagedResponse<PropertySummaryResponse>> SearchAsync(SearchPropertiesRequest request, CancellationToken cancellationToken = default);
 
-    Task<PagedResponse<PropertySummaryResponse>> ListAsync(ListPropertiesRequest request, CancellationToken cancellationToken = default);
+    Task<PagedResponse<PropertyManagementSummaryResponse>> ListAsync(ListPropertiesRequest request, CancellationToken cancellationToken = default);
 
     Task<Result<PropertyDetailsResponse>> GetDetailsAsync(Guid id, CancellationToken cancellationToken = default);
 

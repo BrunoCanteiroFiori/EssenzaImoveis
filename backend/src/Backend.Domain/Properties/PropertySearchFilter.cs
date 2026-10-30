@@ -2,6 +2,7 @@ namespace Backend.Domain.Properties;
 
 /// <summary>
 /// Filtros da busca de imóveis. Campos nulos não filtram. <see cref="Text"/> procura em título, bairro, cidade e UF.
+/// <see cref="SponsoredOnly"/> restringe aos patrocinados ativos.
 /// </summary>
 public sealed record PropertySearchFilter(
     string? Text,
@@ -17,4 +18,5 @@ public sealed record PropertySearchFilter(
     decimal? MaxPrice,
     PropertySortOrder Sort,
     int Page,
-    int PageSize);
+    int PageSize,
+    bool SponsoredOnly = false);

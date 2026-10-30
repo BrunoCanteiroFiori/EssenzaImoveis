@@ -13,7 +13,7 @@ import { Alert, EmptyState } from "@/components/ui/feedback";
 import { formatPrice } from "@/lib/format";
 import { propertyPurposeLabels, propertyStatusLabels, propertyTypeLabels } from "@/lib/labels";
 import { deleteProperty } from "@/lib/properties.api";
-import type { PropertyStatus, PropertySummary } from "@/lib/properties.types";
+import type { PropertyManagementSummary, PropertyStatus } from "@/lib/properties.types";
 import { assetUrl } from "@/lib/site-config";
 
 export const statusTones: Record<PropertyStatus, "success" | "warning" | "info" | "neutral" | "accent"> = {
@@ -25,9 +25,9 @@ export const statusTones: Record<PropertyStatus, "success" | "warning" | "info" 
 };
 
 /** Tabela de imóveis da gestão, com ações conforme as permissões do usuário. */
-export function PropertiesComponent({ properties, onChanged }: { properties: PropertySummary[]; onChanged: () => void }) {
+export function PropertiesComponent({ properties, onChanged }: { properties: PropertyManagementSummary[]; onChanged: () => void }) {
   const { hasPermission, handleError } = useAuth();
-  const [deleting, setDeleting] = useState<PropertySummary | null>(null);
+  const [deleting, setDeleting] = useState<PropertyManagementSummary | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

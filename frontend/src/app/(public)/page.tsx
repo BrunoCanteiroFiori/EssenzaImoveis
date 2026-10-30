@@ -1,8 +1,8 @@
 import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, Flame, Handshake, KeyRound, MessageCircle, ShieldCheck, Sparkles, Star } from "lucide-react";
+import { ArrowRight, Handshake, House, KeyRound, MessageCircle, ShieldCheck, Sparkles, Star, TrendingUp } from "lucide-react";
 import { ContactForm } from "@/components/properties/contact-form";
-import { PropertyGrid } from "@/components/properties/property-card";
+import { PropertyRow } from "@/components/properties/property-card";
 import { SearchForm } from "@/components/properties/search-form";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/feedback";
@@ -84,8 +84,7 @@ async function FeaturedSections() {
     );
   }
 
-  const hasAny = featured.sponsored.length + featured.hottest.length + featured.newest.length > 0;
-  if (!hasAny) {
+  if (featured.newest.length === 0) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
         <EmptyState title="Em breve novos imóveis por aqui.">Enquanto isso, deixe uma mensagem que avisamos você.</EmptyState>
@@ -99,15 +98,29 @@ async function FeaturedSections() {
         title="Destaques"
         description="Imóveis em evidência selecionados pela corretora."
         icon={<Star className="size-5 fill-gold text-gold" aria-hidden />}
-        properties={featured.sponsored}
+        properties={featured.highlights}
         href="/properties"
+        priority
       />
       <FeaturedSection
-        title="Mais procurados"
-        description="Os imóveis que mais receberam visitas nos últimos 30 dias."
-        icon={<Flame className="size-5 text-orange-500" aria-hidden />}
-        properties={featured.hottest}
-        href="/properties?sort=Hottest"
+        title="Compra"
+        description="As melhores oportunidades para comprar."
+        icon={<House className="size-5 text-accent" aria-hidden />}
+        properties={featured.forSale}
+        href="/properties?purpose=Sale"
+      />
+      <FeaturedSection
+        title="Aluguel"
+        description="As melhores opções para alugar."
+        icon={<KeyRound className="size-5 text-accent" aria-hidden />}
+        properties={featured.forRent}
+        href="/properties?purpose=Rent"
+      />
+      <FeaturedSection
+        title="Mais buscados"
+        description="Os imóveis que mais chamam a atenção por aqui."
+        icon={<TrendingUp className="size-5 text-accent" aria-hidden />}
+        properties={featured.mostSearched}
       />
       <FeaturedSection
         title="Recém-chegados"
@@ -125,10 +138,11 @@ type FeaturedSectionProps = {
   description: string;
   icon: ReactNode;
   properties: PropertySummary[];
-  href: string;
+  href?: string;
+  priority?: boolean;
 };
 
-function FeaturedSection({ title, description, icon, properties, href }: FeaturedSectionProps) {
+function FeaturedSection({ title, description, icon, properties, href, priority }: FeaturedSectionProps) {
   if (properties.length === 0) return null;
 
   return (
@@ -141,11 +155,13 @@ function FeaturedSection({ title, description, icon, properties, href }: Feature
           </h2>
           <p className="text-muted-foreground">{description}</p>
         </div>
-        <Link href={href} className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
-          Ver todos <ArrowRight className="size-4" aria-hidden />
-        </Link>
+        {href && (
+          <Link href={href} className="inline-flex items-center gap-1 text-sm font-medium text-accent hover:underline">
+            Ver todos <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        )}
       </div>
-      <PropertyGrid properties={properties} />
+      <PropertyRow properties={properties} priority={priority} />
     </section>
   );
 }

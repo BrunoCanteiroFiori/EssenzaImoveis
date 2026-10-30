@@ -39,4 +39,5 @@ export const temperatureLabels: Record<TemperatureLevel, string> = {
 export const propertyTypes = Object.keys(propertyTypeLabels) as PropertyType[];
 export const propertyPurposes = Object.keys(propertyPurposeLabels) as PropertyPurpose[];
 export const propertyStatuses = Object.keys(propertyStatusLabels) as PropertyStatus[];
-export const sortOrders = Object.keys(sortOrderLabels) as PropertySortOrder[];
+/** Ordenações da busca pública: a ordenação por temperatura fica só na gestão. */
+export const sortOrders: PropertySortOrder[] = ["Relevance", "Newest", "PriceAscending", "PriceDescending"];
