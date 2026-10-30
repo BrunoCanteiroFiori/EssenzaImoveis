@@ -51,7 +51,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="border-b bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-64 md:flex-col md:border-b-0 md:border-r">
+      <aside className="theme-brand border-b bg-surface md:sticky md:top-0 md:flex md:h-screen md:w-64 md:flex-col md:border-b-0 md:border-r">
         <div className="flex h-16 items-center justify-between px-4 md:px-5">
           <Logo href="/admin/dashboard" />
           <div className="md:hidden">

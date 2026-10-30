@@ -2,18 +2,19 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Modo claro: verde militar com letras em dourado champanhe, como a placa da marca. */
+/* Modo claro: verde militar com letras em dourado champanhe, como a placa da marca,
+   sobre fundo verde-sálvia claro. */
 :root {
-  --background: #f7f3ea;
-  --surface: #fffcf5;
-  --surface-muted: #eee8da;
-  --border: #ddd4c0;
-  --foreground: #24261a;
-  --muted-foreground: #5c5848;
+  --background: #edf0e5;
+  --surface: #fbfcf7;
+  --surface-muted: #e2e7d7;
+  --border: #d0d7c1;
+  --foreground: #22261a;
+  --muted-foreground: #545a45;
   --accent: #3f432c;
   --accent-hover: #2b2e1d;
   --accent-foreground: #ecd29f;
-  --accent-soft: #e4e3d2;
+  --accent-soft: #ccd5b6;
   --gold: #b07f45;
   --gold-foreground: #2b1a08;
   --gold-soft: #f2e5cf;
@@ -46,6 +47,23 @@
   color-scheme: dark;
 }
 
+/* Faixas da marca (cabeçalho, rodapé, menu do admin): verde militar no modo claro.
+   No modo escuro nada muda e as faixas seguem o marrom do tema. */
+:root:not(.dark) .theme-brand {
+  --background: #363a26;
+  --surface: #3f432c;
+  --surface-muted: #4b5036;
+  --border: #656a4e;
+  --foreground: #f7f0e1;
+  --muted-foreground: #cfc7ad;
+  --accent: #e1b473;
+  --accent-hover: #ecd29f;
+  --accent-foreground: #24261a;
+  --accent-soft: #2f3322;
+  --ring: #e1b473;
+  color-scheme: dark;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -75,6 +93,10 @@
 
   body {
     background: var(--background);
+    color: var(--foreground);
+  }
+
+  .theme-brand {
     color: var(--foreground);
   }
 
