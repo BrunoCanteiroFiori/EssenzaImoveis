@@ -6,7 +6,7 @@ import { SearchForm } from "@/components/properties/search-form";
 import { VisitorSections } from "@/components/properties/visitor-sections";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState, Skeleton } from "@/components/ui/feedback";
-import { getFeaturedProperties } from "@/lib/properties.api";
+import { getFeaturedProperties } from "@/lib/properties.server";
 import { whatsappLink } from "@/lib/whatsapp";
 
 export default function HomePage() {

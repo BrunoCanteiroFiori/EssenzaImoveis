@@ -5,7 +5,7 @@ import { PropertyDetailsView } from "@/components/properties/property-details-vi
 import { SuggestedProperties } from "@/components/properties/suggested-properties";
 import { ViewTracker } from "@/components/properties/view-tracker";
 import { Skeleton } from "@/components/ui/feedback";
-import { getPropertyDetails } from "@/lib/properties.api";
+import { getPropertyDetails } from "@/lib/properties.server";
 
 export async function PropertyDetailsComponent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

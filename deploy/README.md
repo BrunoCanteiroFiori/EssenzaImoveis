@@ -227,5 +227,9 @@ docker compose restart api        # reiniciar um serviço
 docker compose exec postgres pg_dump -U essenzaimoveis essenzaimoveis > backup.sql   # backup do banco
 ```
 
+O que o admin altera aparece no site em até 1 minuto, porque a home, a busca e a página do imóvel ficam em cache na
+memória do serviço `web` (detalhes em [frontend/README.md](../frontend/README.md#cache-da-área-pública)). Para mostrar
+na hora, rodar `docker compose restart web`, que zera o cache. Um deploy também zera o cache.
+
 Voltar para uma versão anterior: em **Actions**, abrir a execução do commit desejado e usar **Re-run jobs** no job
 **Publicar no servidor**. As imagens antigas continuam no GHCR.

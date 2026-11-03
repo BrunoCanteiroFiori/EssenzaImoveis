@@ -8,7 +8,7 @@ import { Pagination } from "@/components/ui/pagination";
 import { toQueryString } from "@/lib/api-client";
 import { pluralize } from "@/lib/format";
 import { propertyPurposes, propertyTypes, sortOrders } from "@/lib/labels";
-import { searchProperties } from "@/lib/properties.api";
+import { searchProperties } from "@/lib/properties.server";
 import type { PropertySearch } from "@/lib/properties.types";
 
 export type SearchParams = Record<string, string | string[] | undefined>;

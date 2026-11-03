@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPropertyDetails } from "@/lib/properties.api";
+import { getPropertyDetails } from "@/lib/properties.server";
 import { formatPrice } from "@/lib/format";
 import { propertyPurposeLabels, propertyTypeLabels } from "@/lib/labels";
 import { assetUrl } from "@/lib/site-config";
