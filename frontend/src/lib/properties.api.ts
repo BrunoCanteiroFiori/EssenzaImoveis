@@ -1,38 +1,16 @@
 import { apiFetch, toQueryString } from "./api-client";
-import { siteConfig } from "./site-config";
 import type {
-  FeaturedProperties,
   PagedResponse,
   Property,
-  PropertyDetails,
   PropertyInput,
   PropertyLocation,
   PropertyManagementSummary,
   PropertyPurpose,
-  PropertySearch,
   PropertySortField,
   PropertyStatus,
   PropertySummary,
   PropertyType,
 } from "./properties.types";
-
-/** Leitura pública feita no servidor (Server Components). Retorna null em 404 ou se a API estiver fora do ar. */
-async function getPublic<T>(path: string): Promise<T | null> {
-  const baseUrl = process.env.API_URL ?? siteConfig.apiUrl;
-  try {
-    const response = await fetch(`${baseUrl}${path}`, { headers: { Accept: "application/json" } });
-    return response.ok ? ((await response.json()) as T) : null;
-  } catch {
-    return null;
-  }
-}
-
-export const searchProperties = (search: PropertySearch) =>
-  getPublic<PagedResponse<PropertySummary>>(`/properties${toQueryString(search)}`);
-
-export const getFeaturedProperties = () => getPublic<FeaturedProperties>("/properties/featured");
-
-export const getPropertyDetails = (id: string) => getPublic<PropertyDetails>(`/properties/${encodeURIComponent(id)}`);
 
 export const getPropertyLocations = () => apiFetch<PropertyLocation[]>("/properties/locations");
 
